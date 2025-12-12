@@ -90,6 +90,26 @@ interface DashboardData {
     orderCount: number
     roas: string
   }>
+  // Returns data
+  totalReturns: number
+  totalReturnAmount: number
+  totalReturnedToStock: number
+  totalDamaged: number
+  returnsByReason: Array<{
+    reason: string
+    count: number
+    amount: number
+    quantity: number
+  }>
+  recentReturns: Array<{
+    id: number
+    product: string
+    quantity: number
+    amount: number
+    returnToStock: boolean
+    reason: string | null
+    createdAt: string
+  }>
   filterInfo: {
     type: string
     startDate: string
@@ -288,6 +308,55 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Returns Summary */}
+      {data.totalReturns > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              🔄 สรุปสินค้าตีกลับ/ยกเลิก
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4 mb-4">
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">{data.totalReturns}</div>
+                <div className="text-sm text-muted-foreground">รายการตีกลับ</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-red-600">฿{data.totalReturnAmount.toLocaleString()}</div>
+                <div className="text-sm text-muted-foreground">มูลค่าความเสียหาย</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{data.totalReturnedToStock}</div>
+                <div className="text-sm text-muted-foreground">ชิ้นคืนสต็อก</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-gray-600">{data.totalDamaged}</div>
+                <div className="text-sm text-muted-foreground">ชิ้นเสียหาย</div>
+              </div>
+            </div>
+            
+            {data.returnsByReason.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold mb-2 text-orange-800">สาเหตุการตีกลับ:</h4>
+                <div className="space-y-2">
+                  {data.returnsByReason.map((item) => (
+                    <div key={item.reason} className="flex items-center justify-between bg-white p-2 rounded">
+                      <span className="font-medium">{item.reason}</span>
+                      <div className="flex gap-4 text-sm">
+                        <span>{item.count} รายการ</span>
+                        <span>{item.quantity} ชิ้น</span>
+                        <span className="text-red-600 font-semibold">฿{item.amount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Platform Performance - Sales vs Ad Costs */}
       <Card>

@@ -8,15 +8,16 @@ datasource db {
 }
 
 model Product {
-  id         Int         @id @default(autoincrement())
+  id         Int             @id @default(autoincrement())
   name       String
   cost       Float
   price      Float
-  stock      Int         @default(0)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  stock      Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
   stockIns   StockIn[]
   orderItems OrderItem[]
+  returns    ProductReturn[]
 }
 
 model StockIn {
@@ -100,4 +101,16 @@ model Expense {
   shopId      Int?
   date        DateTime
   createdAt   DateTime  @default(now())
+}
+
+model ProductReturn {
+  id            Int      @id @default(autoincrement())
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     Int
+  quantity      Int
+  amount        Float    // ยอดเงินที่ต้องคืน/เสียหาย
+  returnToStock Boolean  @default(true) // คืนเข้าสต็อกหรือไม่
+  reason        String?  // เหตุผลการตีกลับ
+  note          String?
+  createdAt     DateTime @default(now())
 }

@@ -57,6 +57,7 @@ export async function GET(request: Request) {
       adCostsByPlatform,
       ordersByShop,
       adCostsByShop,
+      productReturns,
     ] = await Promise.all([
       prisma.order.findMany({
         where: dateFilter,
@@ -123,6 +124,11 @@ export async function GET(request: Request) {
         _sum: { amount: true },
         _count: true,
       }),
+      // Product returns
+      prisma.productReturn.findMany({
+        where: dateFilter,
+        include: { product: true },
+      }),
     ])
 
     // Get platform, employee, and shop names
@@ -140,6 +146,24 @@ export async function GET(request: Request) {
     const totalOtherExpenses = totalExpenses - totalAdCosts
     const totalCommission = orders.reduce((sum, o) => sum + o.commission, 0)
     const totalOrders = orders.length
+
+    // Calculate returns data
+    const totalReturns = productReturns.length
+    const totalReturnAmount = productReturns.reduce((sum, r) => sum + r.amount, 0)
+    const totalReturnedToStock = productReturns.filter(r => r.returnToStock).reduce((sum, r) => sum + r.quantity, 0)
+    const totalDamaged = productReturns.filter(r => !r.returnToStock).reduce((sum, r) => sum + r.quantity, 0)
+
+    // Group returns by reason
+    const returnsByReason = productReturns.reduce((acc, r) => {
+      const reason = r.reason || "ไม่ระบุเหตุผล"
+      if (!acc[reason]) {
+        acc[reason] = { count: 0, amount: 0, quantity: 0 }
+      }
+      acc[reason].count++
+      acc[reason].amount += r.amount
+      acc[reason].quantity += r.quantity
+      return acc
+    }, {} as Record<string, { count: number; amount: number; quantity: number }>)
 
     // Calculate platform performance (sales vs ad costs)
     const platformPerformance = platforms.map(platform => {
@@ -229,6 +253,26 @@ export async function GET(request: Request) {
       })),
       platformPerformance,
       shopPerformance,
+      // Returns data
+      totalReturns,
+      totalReturnAmount,
+      totalReturnedToStock,
+      totalDamaged,
+      returnsByReason: Object.entries(returnsByReason).map(([reason, data]) => ({
+        reason,
+        count: data.count,
+        amount: data.amount,
+        quantity: data.quantity,
+      })).sort((a, b) => b.amount - a.amount),
+      recentReturns: productReturns.slice(0, 5).map(r => ({
+        id: r.id,
+        product: r.product.name,
+        quantity: r.quantity,
+        amount: r.amount,
+        returnToStock: r.returnToStock,
+        reason: r.reason,
+        createdAt: r.createdAt,
+      })),
       filterInfo: {
         type: filterType,
         startDate: startDate.toISOString(),

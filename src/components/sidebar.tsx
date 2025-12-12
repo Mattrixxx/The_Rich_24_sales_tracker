@@ -9,6 +9,7 @@ const menuItems = [
   { href: "/products", label: "สินค้า", icon: "📦" },
   { href: "/stock-in", label: "รับเข้าสินค้า", icon: "📥" },
   { href: "/orders", label: "ออเดอร์", icon: "🛒" },
+  { href: "/returns", label: "สินค้าตีกลับ", icon: "🔄" },
   { href: "/employees", label: "พนักงาน", icon: "👥" },
   { href: "/platforms", label: "แพลตฟอร์ม", icon: "🌐" },
   { href: "/shops", label: "ร้านค้า", icon: "🏪" },
