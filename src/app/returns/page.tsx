@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { RotateCcw, Plus, Loader2, CheckCircle, XCircle, Package, DollarSign, AlertTriangle, Edit, Trash2, Save, X } from "lucide-react"
 
 interface Product {
   id: number
@@ -151,53 +152,78 @@ export default function ReturnsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-muted-foreground">กำลังโหลดข้อมูล...</div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">🔄 สินค้าตีกลับ</h1>
-        <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? "ยกเลิก" : "➕ เพิ่มรายการตีกลับ"}
+    <div className="space-y-6 pt-12 lg:pt-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <RotateCcw className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold">สินค้าตีกลับ</h1>
+        </div>
+        <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto">
+          {showForm ? (
+            <>
+              <X className="h-4 w-4 mr-2" />
+              ยกเลิก
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              เพิ่มรายการตีกลับ
+            </>
+          )}
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">รายการตีกลับ</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-primary" />
+              รายการตีกลับ
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalReturns} รายการ</div>
+            <div className="text-lg sm:text-2xl font-bold">{totalReturns} รายการ</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">มูลค่ารวม</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-red-600" />
+              มูลค่ารวม
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">฿{totalAmount.toLocaleString()}</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-600">฿{totalAmount.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">คืนเข้าสต็อก</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              คืนเข้าสต็อก
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{totalReturnedToStock} ชิ้น</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{totalReturnedToStock} ชิ้น</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">เสียหาย (ไม่คืนสต็อก)</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <span className="truncate">เสียหาย</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{totalDamaged} ชิ้น</div>
+            <div className="text-lg sm:text-2xl font-bold text-orange-600">{totalDamaged} ชิ้น</div>
           </CardContent>
         </Card>
       </div>
@@ -206,11 +232,14 @@ export default function ReturnsPage() {
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingReturn ? "แก้ไขรายการตีกลับ" : "เพิ่มรายการตีกลับ"}</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              {editingReturn ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              {editingReturn ? "แก้ไขรายการตีกลับ" : "เพิ่มรายการตีกลับ"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="productId">สินค้า *</Label>
                   <Select
@@ -263,8 +292,8 @@ export default function ReturnsPage() {
                     onChange={(e) => setReturnToStock(e.target.value)}
                     required
                   >
-                    <option value="true">✅ คืนเข้าสต็อก</option>
-                    <option value="false">❌ ไม่คืน (เสียหาย)</option>
+                    <option value="true">คืนเข้าสต็อก</option>
+                    <option value="false">ไม่คืน (เสียหาย)</option>
                   </Select>
                 </div>
 
@@ -298,11 +327,22 @@ export default function ReturnsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button type="submit">
-                  {editingReturn ? "💾 บันทึก" : "➕ เพิ่มรายการ"}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button type="submit" className="w-full sm:w-auto">
+                  {editingReturn ? (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      บันทึก
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      เพิ่มรายการ
+                    </>
+                  )}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} className="w-full sm:w-auto">
+                  <X className="h-4 w-4 mr-2" />
                   ยกเลิก
                 </Button>
               </div>
@@ -314,79 +354,89 @@ export default function ReturnsPage() {
       {/* Returns Table */}
       <Card>
         <CardHeader>
-          <CardTitle>รายการสินค้าตีกลับ</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <RotateCcw className="h-5 w-5" />
+            รายการสินค้าตีกลับ
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {returns.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <div className="text-center text-muted-foreground py-8">
+              <RotateCcw className="h-12 w-12 mx-auto mb-2 opacity-50" />
               ยังไม่มีรายการสินค้าตีกลับ
-            </p>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>วันที่</TableHead>
-                  <TableHead>สินค้า</TableHead>
-                  <TableHead className="text-right">จำนวน</TableHead>
-                  <TableHead className="text-right">ยอดเงิน</TableHead>
-                  <TableHead className="text-center">คืนสต็อก</TableHead>
-                  <TableHead>เหตุผล</TableHead>
-                  <TableHead>หมายเหตุ</TableHead>
-                  <TableHead className="text-right">จัดการ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {returns.map((productReturn) => (
-                  <TableRow key={productReturn.id}>
-                    <TableCell>
-                      {new Date(productReturn.createdAt).toLocaleDateString("th-TH", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="font-medium">{productReturn.product.name}</TableCell>
-                    <TableCell className="text-right">{productReturn.quantity} ชิ้น</TableCell>
-                    <TableCell className="text-right text-red-600 font-semibold">
-                      ฿{productReturn.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {productReturn.returnToStock ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✅ คืนแล้ว
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          ❌ เสียหาย
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{productReturn.reason || "-"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {productReturn.note || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(productReturn)}
-                        >
-                          ✏️
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(productReturn.id)}
-                        >
-                          🗑️
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>วันที่</TableHead>
+                    <TableHead>สินค้า</TableHead>
+                    <TableHead className="text-right">จำนวน</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">ยอดเงิน</TableHead>
+                    <TableHead className="text-center hidden sm:table-cell">คืนสต็อก</TableHead>
+                    <TableHead className="hidden md:table-cell">เหตุผล</TableHead>
+                    <TableHead className="hidden lg:table-cell">หมายเหตุ</TableHead>
+                    <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {returns.map((productReturn) => (
+                    <TableRow key={productReturn.id}>
+                      <TableCell className="text-xs sm:text-sm">
+                        {new Date(productReturn.createdAt).toLocaleDateString("th-TH", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <span className="truncate max-w-[100px] sm:max-w-none block">{productReturn.product.name}</span>
+                      </TableCell>
+                      <TableCell className="text-right">{productReturn.quantity}</TableCell>
+                      <TableCell className="text-right text-red-600 font-semibold hidden sm:table-cell">
+                        ฿{productReturn.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center hidden sm:table-cell">
+                        {productReturn.returnToStock ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3" />
+                            <span className="hidden md:inline">คืนแล้ว</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <XCircle className="h-3 w-3" />
+                            <span className="hidden md:inline">เสียหาย</span>
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{productReturn.reason || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate hidden lg:table-cell">
+                        {productReturn.note || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(productReturn)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(productReturn.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

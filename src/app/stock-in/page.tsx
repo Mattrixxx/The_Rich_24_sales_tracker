@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { PackagePlus, Plus, Loader2, Package, DollarSign, ListOrdered } from "lucide-react"
 
 interface Product {
   id: number
@@ -41,6 +42,7 @@ export default function StockInPage() {
   const [costPerUnit, setCostPerUnit] = useState("")
   const [note, setNote] = useState("")
   const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
 
   const fetchData = async () => {
     const [stockInsRes, productsRes] = await Promise.all([
@@ -49,6 +51,7 @@ export default function StockInPage() {
     ])
     setStockIns(await stockInsRes.json())
     setProducts(await productsRes.json())
+    setPageLoading(false)
   }
 
   useEffect(() => {
@@ -88,16 +91,30 @@ export default function StockInPage() {
 
   const totalStockValue = stockIns.reduce((sum, s) => sum + s.totalCost, 0)
 
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">รับเข้าสินค้า</h1>
+    <div className="space-y-6 pt-12 lg:pt-0">
+      <div className="flex items-center gap-3">
+        <PackagePlus className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl md:text-3xl font-bold">รับเข้าสินค้า</h1>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>บันทึกการรับเข้าสินค้า</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Plus className="h-5 w-5" />
+            บันทึกการรับเข้าสินค้า
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-5">
+          <form onSubmit={handleSubmit} className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <Label htmlFor="product">สินค้า</Label>
               <Select
@@ -147,119 +164,147 @@ export default function StockInPage() {
                 placeholder="หมายเหตุ (ถ้ามี)"
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end sm:col-span-2 lg:col-span-1">
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "กำลังบันทึก..." : "รับเข้า"}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    กำลังบันทึก...
+                  </>
+                ) : (
+                  <>
+                    <PackagePlus className="h-4 w-4 mr-2" />
+                    รับเข้า
+                  </>
+                )}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">มูลค่ารับเข้าทั้งหมด</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-blue-600" />
+              มูลค่ารับเข้าทั้งหมด
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
               ฿{totalStockValue.toLocaleString()}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">จำนวนรายการรับเข้า</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <ListOrdered className="h-4 w-4" />
+              จำนวนรายการรับเข้า
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stockIns.length} รายการ</div>
+            <div className="text-lg sm:text-2xl font-bold">{stockIns.length} รายการ</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>สต๊อกสินค้าปัจจุบัน</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Package className="h-5 w-5" />
+            สต๊อกสินค้าปัจจุบัน
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>สินค้า</TableHead>
-                <TableHead className="text-right">คงเหลือ</TableHead>
-                <TableHead className="text-right">ต้นทุนเฉลี่ย</TableHead>
-                <TableHead className="text-right">ราคาขาย</TableHead>
-                <TableHead className="text-right">มูลค่าสต๊อก</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-right">{product.stock} ชิ้น</TableCell>
-                  <TableCell className="text-right">฿{product.cost.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">฿{product.price.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    ฿{(product.stock * product.cost).toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {products.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    ยังไม่มีสินค้า
-                  </TableCell>
+                  <TableHead>สินค้า</TableHead>
+                  <TableHead className="text-right">คงเหลือ</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">ต้นทุนเฉลี่ย</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">ราคาขาย</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">มูลค่าสต๊อก</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {products.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="text-right">{product.stock}</TableCell>
+                    <TableCell className="text-right hidden sm:table-cell">฿{product.cost.toFixed(2)}</TableCell>
+                    <TableCell className="text-right hidden sm:table-cell">฿{product.price.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-medium hidden md:table-cell">
+                      ฿{(product.stock * product.cost).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {products.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      ยังไม่มีสินค้า
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>ประวัติการรับเข้าสินค้า ({stockIns.length} รายการ)</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <PackagePlus className="h-5 w-5" />
+            ประวัติการรับเข้าสินค้า ({stockIns.length} รายการ)
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>วันที่</TableHead>
-                <TableHead>สินค้า</TableHead>
-                <TableHead className="text-right">จำนวน</TableHead>
-                <TableHead className="text-right">ต้นทุน/ชิ้น</TableHead>
-                <TableHead className="text-right">รวม</TableHead>
-                <TableHead>หมายเหตุ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stockIns.map((stockIn) => (
-                <TableRow key={stockIn.id}>
-                  <TableCell>
-                    {new Date(stockIn.createdAt).toLocaleDateString("th-TH")}
-                  </TableCell>
-                  <TableCell>{stockIn.product.name}</TableCell>
-                  <TableCell className="text-right">{stockIn.quantity}</TableCell>
-                  <TableCell className="text-right">
-                    ฿{stockIn.costPerUnit.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    ฿{stockIn.totalCost.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {stockIn.note || "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {stockIns.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    ยังไม่มีประวัติการรับเข้า
-                  </TableCell>
+                  <TableHead>วันที่</TableHead>
+                  <TableHead>สินค้า</TableHead>
+                  <TableHead className="text-right">จำนวน</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">ต้นทุน/ชิ้น</TableHead>
+                  <TableHead className="text-right">รวม</TableHead>
+                  <TableHead className="hidden md:table-cell">หมายเหตุ</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {stockIns.map((stockIn) => (
+                  <TableRow key={stockIn.id}>
+                    <TableCell className="text-xs sm:text-sm">
+                      {new Date(stockIn.createdAt).toLocaleDateString("th-TH")}
+                    </TableCell>
+                    <TableCell className="max-w-[80px] sm:max-w-none truncate">{stockIn.product.name}</TableCell>
+                    <TableCell className="text-right">{stockIn.quantity}</TableCell>
+                    <TableCell className="text-right hidden sm:table-cell">
+                      ฿{stockIn.costPerUnit.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-xs sm:text-sm">
+                      ฿{stockIn.totalCost.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                      {stockIn.note || "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {stockIns.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <PackagePlus className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      ยังไม่มีประวัติการรับเข้า
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

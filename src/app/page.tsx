@@ -13,6 +13,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  TrendingUp,
+  Megaphone,
+  CreditCard,
+  BarChart3,
+  Users,
+  ShoppingCart,
+  Calendar,
+  RotateCcw,
+  Package,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Globe,
+  Store,
+  Loader2,
+} from "lucide-react"
 
 interface OrderItem {
   id: number
@@ -157,23 +174,24 @@ export default function Dashboard() {
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-muted-foreground">กำลังโหลดข้อมูล...</div>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="ml-2 text-lg text-muted-foreground">กำลังโหลดข้อมูล...</span>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">แดชบอร์ด</h1>
-        <div className="flex gap-4 items-end">
-          <div>
-            <Label htmlFor="filterType">ช่วงเวลา</Label>
+    <div className="space-y-4 md:space-y-6 pt-12 lg:pt-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold">แดชบอร์ด</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-end">
+          <div className="flex-1 sm:flex-none">
+            <Label htmlFor="filterType" className="text-sm">ช่วงเวลา</Label>
             <Select
               id="filterType"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-32"
+              className="w-full sm:w-32"
             >
               <option value="all">ทั้งหมด</option>
               <option value="day">รายวัน</option>
@@ -182,8 +200,8 @@ export default function Dashboard() {
             </Select>
           </div>
           {filterType !== "all" && (
-            <div>
-              <Label htmlFor="filterDate">
+            <div className="flex-1 sm:flex-none">
+              <Label htmlFor="filterDate" className="text-sm">
                 {filterType === "day" ? "วันที่" : filterType === "month" ? "เดือน" : "ปี"}
               </Label>
               <Input
@@ -197,7 +215,7 @@ export default function Dashboard() {
                     setFilterDate(e.target.value)
                   }
                 }}
-                className="w-40"
+                className="w-full sm:w-40"
                 min={filterType === "year" ? "2020" : undefined}
                 max={filterType === "year" ? "2030" : undefined}
               />
@@ -206,21 +224,22 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+        <Calendar className="w-5 h-5 text-blue-600" />
         <p className="text-blue-800 font-medium">
-          📅 แสดงข้อมูล: <span className="font-bold">{getFilterLabel()}</span>
+          แสดงข้อมูล: <span className="font-bold">{getFilterLabel()}</span>
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ยอดขายรวม</CardTitle>
-            <span className="text-2xl">💰</span>
+            <CardTitle className="text-xs md:text-sm font-medium">ยอดขายรวม</CardTitle>
+            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg md:text-2xl font-bold text-green-600">
               ฿{data.totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">{data.totalOrders} ออเดอร์</p>
@@ -229,11 +248,11 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">📢 ค่าโฆษณา</CardTitle>
-            <span className="text-2xl">📢</span>
+            <CardTitle className="text-xs md:text-sm font-medium">ค่าโฆษณา</CardTitle>
+            <Megaphone className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-lg md:text-2xl font-bold text-orange-600">
               ฿{data.totalAdCosts.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -246,11 +265,11 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ค่าใช้จ่ายอื่นๆ</CardTitle>
-            <span className="text-2xl">💸</span>
+            <CardTitle className="text-xs md:text-sm font-medium">ค่าใช้จ่ายอื่นๆ</CardTitle>
+            <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-lg md:text-2xl font-bold text-red-600">
               ฿{data.totalOtherExpenses.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -261,11 +280,11 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">กำไรสุทธิ</CardTitle>
-            <span className="text-2xl">📊</span>
+            <CardTitle className="text-xs md:text-sm font-medium">กำไรสุทธิ</CardTitle>
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${data.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+            <div className={`text-lg md:text-2xl font-bold ${data.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
               ฿{data.profit.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -278,11 +297,11 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ค่าคอมมิชชั่น</CardTitle>
-            <span className="text-2xl">👥</span>
+            <CardTitle className="text-xs md:text-sm font-medium">ค่าคอมมิชชั่น</CardTitle>
+            <Users className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-lg md:text-2xl font-bold text-purple-600">
               ฿{data.totalCommission.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -295,11 +314,11 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">จำนวนออเดอร์</CardTitle>
-            <span className="text-2xl">🛒</span>
+            <CardTitle className="text-xs md:text-sm font-medium">จำนวนออเดอร์</CardTitle>
+            <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.totalOrders}</div>
+            <div className="text-lg md:text-2xl font-bold">{data.totalOrders}</div>
             <p className="text-xs text-muted-foreground">
               เฉลี่ย ฿{data.totalOrders > 0 
                 ? (data.totalRevenue / data.totalOrders).toLocaleString(undefined, { maximumFractionDigits: 0 }) 
@@ -314,37 +333,47 @@ export default function Dashboard() {
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-800">
-              🔄 สรุปสินค้าตีกลับ/ยกเลิก
+              <RotateCcw className="w-5 h-5" />
+              สรุปสินค้าตีกลับ/ยกเลิก
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4 mb-4">
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">{data.totalReturns}</div>
-                <div className="text-sm text-muted-foreground">รายการตีกลับ</div>
+            <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4 mb-4">
+              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                <div className="text-xl md:text-2xl font-bold text-orange-600">{data.totalReturns}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">รายการตีกลับ</div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-red-600">฿{data.totalReturnAmount.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">มูลค่าความเสียหาย</div>
+              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                <div className="text-xl md:text-2xl font-bold text-red-600">฿{data.totalReturnAmount.toLocaleString()}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">มูลค่าความเสียหาย</div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{data.totalReturnedToStock}</div>
-                <div className="text-sm text-muted-foreground">ชิ้นคืนสต็อก</div>
+              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                <div className="flex items-center justify-center gap-1">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-xl md:text-2xl font-bold text-green-600">{data.totalReturnedToStock}</span>
+                </div>
+                <div className="text-xs md:text-sm text-muted-foreground">ชิ้นคืนสต็อก</div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-gray-600">{data.totalDamaged}</div>
-                <div className="text-sm text-muted-foreground">ชิ้นเสียหาย</div>
+              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                <div className="flex items-center justify-center gap-1">
+                  <XCircle className="w-4 h-4 text-gray-600" />
+                  <span className="text-xl md:text-2xl font-bold text-gray-600">{data.totalDamaged}</span>
+                </div>
+                <div className="text-xs md:text-sm text-muted-foreground">ชิ้นเสียหาย</div>
               </div>
             </div>
             
             {data.returnsByReason.length > 0 && (
               <div className="mt-4">
-                <h4 className="font-semibold mb-2 text-orange-800">สาเหตุการตีกลับ:</h4>
+                <h4 className="font-semibold mb-2 text-orange-800 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  สาเหตุการตีกลับ
+                </h4>
                 <div className="space-y-2">
                   {data.returnsByReason.map((item) => (
-                    <div key={item.reason} className="flex items-center justify-between bg-white p-2 rounded">
-                      <span className="font-medium">{item.reason}</span>
-                      <div className="flex gap-4 text-sm">
+                    <div key={item.reason} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-2 rounded gap-2">
+                      <span className="font-medium text-sm">{item.reason}</span>
+                      <div className="flex gap-4 text-xs sm:text-sm">
                         <span>{item.count} รายการ</span>
                         <span>{item.quantity} ชิ้น</span>
                         <span className="text-red-600 font-semibold">฿{item.amount.toLocaleString()}</span>
@@ -361,54 +390,57 @@ export default function Dashboard() {
       {/* Platform Performance - Sales vs Ad Costs */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            📊 ประสิทธิภาพแพลตฟอร์ม (ยอดขาย vs ค่าโฆษณา)
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <Globe className="w-5 h-5 text-blue-600" />
+            ประสิทธิภาพแพลตฟอร์ม (ยอดขาย vs ค่าโฆษณา)
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.platformPerformance.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">ไม่มีข้อมูลในช่วงนี้</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>แพลตฟอร์ม</TableHead>
-                  <TableHead className="text-right">ยอดขาย</TableHead>
-                  <TableHead className="text-right">ค่าโฆษณา</TableHead>
-                  <TableHead className="text-right">กำไรจากแพลตฟอร์ม</TableHead>
-                  <TableHead className="text-right">ROAS</TableHead>
-                  <TableHead className="text-right">ออเดอร์</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.platformPerformance
-                  .sort((a, b) => b.revenue - a.revenue)
-                  .map((platform) => (
-                    <TableRow key={platform.platform}>
-                      <TableCell className="font-medium">{platform.platform}</TableCell>
-                      <TableCell className="text-right text-green-600 font-semibold">
-                        ฿{platform.revenue.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-orange-600">
-                        ฿{platform.adCost.toLocaleString()}
-                      </TableCell>
-                      <TableCell className={`text-right font-semibold ${platform.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        ฿{platform.profit.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {platform.roas === "N/A" ? (
-                          <span className="text-gray-400">-</span>
-                        ) : (
-                          <span className={parseFloat(platform.roas) >= 2 ? "text-green-600 font-semibold" : "text-yellow-600"}>
-                            {platform.roas}x
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">{platform.orderCount}</TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>แพลตฟอร์ม</TableHead>
+                    <TableHead className="text-right">ยอดขาย</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">ค่าโฆษณา</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">กำไร</TableHead>
+                    <TableHead className="text-right">ROAS</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">ออเดอร์</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.platformPerformance
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .map((platform) => (
+                      <TableRow key={platform.platform}>
+                        <TableCell className="font-medium">{platform.platform}</TableCell>
+                        <TableCell className="text-right text-green-600 font-semibold">
+                          ฿{platform.revenue.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-600 hidden sm:table-cell">
+                          ฿{platform.adCost.toLocaleString()}
+                        </TableCell>
+                        <TableCell className={`text-right font-semibold hidden md:table-cell ${platform.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ฿{platform.profit.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {platform.roas === "N/A" ? (
+                            <span className="text-gray-400">-</span>
+                          ) : (
+                            <span className={parseFloat(platform.roas) >= 2 ? "text-green-600 font-semibold" : "text-yellow-600"}>
+                              {platform.roas}x
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right hidden sm:table-cell">{platform.orderCount}</TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -416,56 +448,59 @@ export default function Dashboard() {
       {/* Shop Performance - Sales vs Ad Costs */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            🏪 ประสิทธิภาพร้านค้า (ยอดขาย vs ค่าโฆษณา)
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <Store className="w-5 h-5 text-purple-600" />
+            ประสิทธิภาพร้านค้า (ยอดขาย vs ค่าโฆษณา)
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.shopPerformance.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">ไม่มีข้อมูลร้านค้าในช่วงนี้</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ร้านค้า</TableHead>
-                  <TableHead>แพลตฟอร์ม</TableHead>
-                  <TableHead className="text-right">ยอดขาย</TableHead>
-                  <TableHead className="text-right">ค่าโฆษณา</TableHead>
-                  <TableHead className="text-right">กำไรจากร้านค้า</TableHead>
-                  <TableHead className="text-right">ROAS</TableHead>
-                  <TableHead className="text-right">ออเดอร์</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.shopPerformance
-                  .sort((a, b) => b.revenue - a.revenue)
-                  .map((shop) => (
-                    <TableRow key={shop.shopId}>
-                      <TableCell className="font-medium">{shop.shop}</TableCell>
-                      <TableCell className="text-muted-foreground">{shop.platform}</TableCell>
-                      <TableCell className="text-right text-green-600 font-semibold">
-                        ฿{shop.revenue.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-orange-600">
-                        ฿{shop.adCost.toLocaleString()}
-                      </TableCell>
-                      <TableCell className={`text-right font-semibold ${shop.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        ฿{shop.profit.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {shop.roas === "N/A" ? (
-                          <span className="text-gray-400">-</span>
-                        ) : (
-                          <span className={parseFloat(shop.roas) >= 2 ? "text-green-600 font-semibold" : "text-yellow-600"}>
-                            {shop.roas}x
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">{shop.orderCount}</TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ร้านค้า</TableHead>
+                    <TableHead className="hidden sm:table-cell">แพลตฟอร์ม</TableHead>
+                    <TableHead className="text-right">ยอดขาย</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">ค่าโฆษณา</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">กำไร</TableHead>
+                    <TableHead className="text-right">ROAS</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">ออเดอร์</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.shopPerformance
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .map((shop) => (
+                      <TableRow key={shop.shopId}>
+                        <TableCell className="font-medium">{shop.shop}</TableCell>
+                        <TableCell className="text-muted-foreground hidden sm:table-cell">{shop.platform}</TableCell>
+                        <TableCell className="text-right text-green-600 font-semibold">
+                          ฿{shop.revenue.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-600 hidden sm:table-cell">
+                          ฿{shop.adCost.toLocaleString()}
+                        </TableCell>
+                        <TableCell className={`text-right font-semibold hidden md:table-cell ${shop.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ฿{shop.profit.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {shop.roas === "N/A" ? (
+                            <span className="text-gray-400">-</span>
+                          ) : (
+                            <span className={parseFloat(shop.roas) >= 2 ? "text-green-600 font-semibold" : "text-yellow-600"}>
+                              {shop.roas}x
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right hidden sm:table-cell">{shop.orderCount}</TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -474,8 +509,9 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📢 ค่าโฆษณาตามแพลตฟอร์ม
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <Megaphone className="w-5 h-5 text-orange-600" />
+              ค่าโฆษณาตามแพลตฟอร์ม
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -486,9 +522,9 @@ export default function Dashboard() {
                 {data.adCostsByPlatform
                   .sort((a, b) => b.amount - a.amount)
                   .map((ad) => (
-                    <div key={ad.platform} className="flex items-center justify-between">
+                    <div key={ad.platform} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{ad.platform}</span>
+                        <span className="font-medium text-sm">{ad.platform}</span>
                         <span className="text-xs text-muted-foreground">({ad.count} รายการ)</span>
                       </div>
                       <div className="text-right">
@@ -500,7 +536,7 @@ export default function Dashboard() {
                     </div>
                   ))}
                 <div className="border-t pt-2 mt-2">
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-bold text-sm">
                     <span>รวมค่าโฆษณา</span>
                     <span className="text-orange-600">฿{data.totalAdCosts.toLocaleString()}</span>
                   </div>
@@ -512,8 +548,9 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              💸 ค่าใช้จ่ายอื่นๆ (ไม่รวมค่าแอด)
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <CreditCard className="w-5 h-5 text-red-600" />
+              ค่าใช้จ่ายอื่นๆ (ไม่รวมค่าแอด)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -524,9 +561,9 @@ export default function Dashboard() {
                 {data.expensesByCategory
                   .sort((a, b) => b.amount - a.amount)
                   .map((expense) => (
-                    <div key={expense.category} className="flex items-center justify-between">
+                    <div key={expense.category} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{expense.category}</span>
+                        <span className="font-medium text-sm">{expense.category}</span>
                         <span className="text-xs text-muted-foreground">({expense.count} รายการ)</span>
                       </div>
                       <div className="text-right">
@@ -538,7 +575,7 @@ export default function Dashboard() {
                     </div>
                   ))}
                 <div className="border-t pt-2 mt-2">
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-bold text-sm">
                     <span>รวมค่าใช้จ่าย</span>
                     <span className="text-red-600">฿{data.totalOtherExpenses.toLocaleString()}</span>
                   </div>
@@ -552,8 +589,9 @@ export default function Dashboard() {
       {/* Platform Sales */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            🌐 ยอดขายตามแพลตฟอร์ม
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <Globe className="w-5 h-5 text-green-600" />
+            ยอดขายตามแพลตฟอร์ม
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -564,9 +602,9 @@ export default function Dashboard() {
               {data.ordersByPlatform
                 .sort((a, b) => b.revenue - a.revenue)
                 .map((platform) => (
-                  <div key={platform.platform} className="flex items-center justify-between">
+                  <div key={platform.platform} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{platform.platform}</span>
+                      <span className="font-medium text-sm">{platform.platform}</span>
                       <span className="text-xs text-muted-foreground">({platform.count} ออเดอร์)</span>
                     </div>
                     <div className="text-right">
@@ -578,7 +616,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               <div className="border-t pt-2 mt-2">
-                <div className="flex justify-between font-bold">
+                <div className="flex justify-between font-bold text-sm">
                   <span>รวมทั้งหมด</span>
                   <span className="text-green-600">฿{data.totalRevenue.toLocaleString()}</span>
                 </div>
@@ -591,35 +629,37 @@ export default function Dashboard() {
       {/* Employee Performance */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            👥 ยอดขายตามพนักงาน
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <Users className="w-5 h-5 text-purple-600" />
+            ยอดขายตามพนักงาน
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.ordersByEmployee.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">ไม่มียอดขายในช่วงนี้</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>พนักงาน</TableHead>
-                  <TableHead className="text-right">จำนวนออเดอร์</TableHead>
-                  <TableHead className="text-right">ยอดขาย</TableHead>
-                  <TableHead className="text-right">ค่าคอมมิชชั่น</TableHead>
-                  <TableHead className="text-right">สัดส่วน</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>พนักงาน</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">ออเดอร์</TableHead>
+                    <TableHead className="text-right">ยอดขาย</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">คอมมิชชั่น</TableHead>
+                    <TableHead className="text-right">สัดส่วน</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {data.ordersByEmployee
                   .sort((a, b) => b.revenue - a.revenue)
                   .map((emp) => (
                     <TableRow key={emp.employee}>
                       <TableCell className="font-medium">{emp.employee}</TableCell>
-                      <TableCell className="text-right">{emp.count}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell">{emp.count}</TableCell>
                       <TableCell className="text-right text-green-600 font-semibold">
                         ฿{emp.revenue.toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right text-blue-600">
+                      <TableCell className="text-right text-blue-600 hidden sm:table-cell">
                         ฿{emp.commission.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -628,7 +668,8 @@ export default function Dashboard() {
                     </TableRow>
                   ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -636,60 +677,71 @@ export default function Dashboard() {
       {/* Recent Orders */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            🛒 ออเดอร์ล่าสุด
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <ShoppingCart className="w-5 h-5 text-slate-600" />
+            ออเดอร์ล่าสุด
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.recentOrders.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">ไม่มีออเดอร์ในช่วงนี้</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>วันที่</TableHead>
-                  <TableHead>สินค้า</TableHead>
-                  <TableHead>พนักงาน</TableHead>
-                  <TableHead>แพลตฟอร์ม</TableHead>
-                  <TableHead className="text-right">ยอดขาย</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.recentOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                      {new Date(order.createdAt).toLocaleDateString("th-TH")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="text-sm">
-                            {item.product.name} x{item.quantity}
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.employee.name}</TableCell>
-                    <TableCell>{order.platform.name}</TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">
-                      ฿{order.totalPrice.toLocaleString()}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>วันที่</TableHead>
+                    <TableHead>สินค้า</TableHead>
+                    <TableHead className="hidden sm:table-cell">พนักงาน</TableHead>
+                    <TableHead className="hidden md:table-cell">แพลตฟอร์ม</TableHead>
+                    <TableHead className="text-right">ยอดขาย</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {data.recentOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="text-sm">
+                        {new Date(order.createdAt).toLocaleDateString("th-TH")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {order.items.slice(0, 2).map((item) => (
+                            <div key={item.id} className="text-xs sm:text-sm">
+                              {item.product.name} x{item.quantity}
+                            </div>
+                          ))}
+                          {order.items.length > 2 && (
+                            <div className="text-xs text-muted-foreground">
+                              +{order.items.length - 2} รายการ
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{order.employee.name}</TableCell>
+                      <TableCell className="hidden md:table-cell">{order.platform.name}</TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">
+                        ฿{order.totalPrice.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Summary Info */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>📦 ข้อมูลสรุป</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <Package className="w-5 h-5 text-blue-600" />
+              ข้อมูลสรุป
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>จำนวนสินค้าทั้งหมด</span>
                 <span className="font-semibold">{data.totalProducts} รายการ</span>

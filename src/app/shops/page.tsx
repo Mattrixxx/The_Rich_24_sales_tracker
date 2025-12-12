@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Store, Plus, Edit, Trash2, Loader2, Save, X, AlertCircle } from "lucide-react"
 
 interface Platform {
   id: number
@@ -33,6 +34,7 @@ export default function ShopsPage() {
   const [name, setName] = useState("")
   const [platformId, setPlatformId] = useState("")
   const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editName, setEditName] = useState("")
   const [editPlatformId, setEditPlatformId] = useState("")
@@ -45,6 +47,7 @@ export default function ShopsPage() {
     ])
     setShops(await shopsRes.json())
     setPlatforms(await platformsRes.json())
+    setPageLoading(false)
   }
 
   useEffect(() => {
@@ -118,21 +121,36 @@ export default function ShopsPage() {
     return acc
   }, {} as Record<string, Shop[]>)
 
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">จัดการร้านค้า</h1>
+    <div className="space-y-6 pt-12 lg:pt-0">
+      <div className="flex items-center gap-3">
+        <Store className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl md:text-3xl font-bold">จัดการร้านค้า</h1>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>เพิ่มร้านค้าใหม่</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Plus className="h-5 w-5" />
+            เพิ่มร้านค้าใหม่
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mb-4">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mb-4 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
               {error}
             </div>
           )}
-          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-3">
+          <form onSubmit={handleSubmit} className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             <div>
               <Label htmlFor="platform">แพลตฟอร์ม</Label>
               <Select
@@ -159,9 +177,19 @@ export default function ShopsPage() {
                 required
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end sm:col-span-2 md:col-span-1">
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "กำลังเพิ่ม..." : "เพิ่มร้านค้า"}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    กำลังเพิ่ม...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    เพิ่มร้านค้า
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -169,12 +197,13 @@ export default function ShopsPage() {
       </Card>
 
       {/* Shops grouped by platform */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {Object.entries(shopsByPlatform).map(([platformName, platformShops]) => (
           <Card key={platformName}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🏪 {platformName}
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Store className="h-5 w-5 text-primary" />
+                {platformName}
                 <span className="text-sm font-normal text-muted-foreground">
                   ({platformShops.length} ร้าน)
                 </span>
@@ -185,43 +214,45 @@ export default function ShopsPage() {
                 {platformShops.map((shop) => (
                   <div
                     key={shop.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-2 bg-gray-50 rounded gap-2"
                   >
                     {editingId === shop.id ? (
-                      <div className="flex gap-2 flex-1">
+                      <div className="flex flex-col sm:flex-row gap-2 flex-1">
                         <Input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           className="flex-1"
                         />
-                        <Button size="sm" onClick={handleSaveEdit}>
-                          บันทึก
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingId(null)}
-                        >
-                          ยกเลิก
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button size="sm" onClick={handleSaveEdit}>
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingId(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <>
-                        <span className="font-medium">{shop.name}</span>
-                        <div className="flex gap-1">
+                        <span className="font-medium truncate">{shop.name}</span>
+                        <div className="flex gap-1 justify-end">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(shop)}
                           >
-                            แก้ไข
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="destructive"
                             onClick={() => handleDelete(shop.id)}
                           >
-                            ลบ
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </>
@@ -242,9 +273,10 @@ export default function ShopsPage() {
       {shops.length === 0 && (
         <Card>
           <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">
+            <div className="text-center text-muted-foreground">
+              <Store className="h-12 w-12 mx-auto mb-2 opacity-50" />
               ยังไม่มีร้านค้า กรุณาเพิ่มร้านค้าใหม่
-            </p>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -252,55 +284,61 @@ export default function ShopsPage() {
       {/* All shops table */}
       <Card>
         <CardHeader>
-          <CardTitle>รายการร้านค้าทั้งหมด ({shops.length} ร้าน)</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Store className="h-5 w-5" />
+            รายการร้านค้าทั้งหมด ({shops.length} ร้าน)
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>แพลตฟอร์ม</TableHead>
-                <TableHead>ชื่อร้านค้า</TableHead>
-                <TableHead>วันที่เพิ่ม</TableHead>
-                <TableHead className="text-right">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shops.map((shop) => (
-                <TableRow key={shop.id}>
-                  <TableCell>{shop.platform.name}</TableCell>
-                  <TableCell className="font-medium">{shop.name}</TableCell>
-                  <TableCell>
-                    {new Date(shop.createdAt).toLocaleDateString("th-TH")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(shop)}
-                      >
-                        แก้ไข
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(shop.id)}
-                      >
-                        ลบ
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {shops.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    ยังไม่มีร้านค้า
-                  </TableCell>
+                  <TableHead>แพลตฟอร์ม</TableHead>
+                  <TableHead>ชื่อร้านค้า</TableHead>
+                  <TableHead className="hidden sm:table-cell">วันที่เพิ่ม</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {shops.map((shop) => (
+                  <TableRow key={shop.id}>
+                    <TableCell>{shop.platform.name}</TableCell>
+                    <TableCell className="font-medium">{shop.name}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {new Date(shop.createdAt).toLocaleDateString("th-TH")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(shop)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(shop.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {shops.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      <Store className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      ยังไม่มีร้านค้า
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

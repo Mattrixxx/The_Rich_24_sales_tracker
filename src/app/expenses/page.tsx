@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Wallet, Plus, Trash2, Loader2, Megaphone, CreditCard, Store } from "lucide-react"
 
 interface Platform {
   id: number
@@ -60,6 +61,7 @@ export default function ExpensesPage() {
   const [shopId, setShopId] = useState("")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
 
   const fetchData = async () => {
     const [expensesRes, platformsRes, shopsRes] = await Promise.all([
@@ -70,6 +72,7 @@ export default function ExpensesPage() {
     setExpenses(await expensesRes.json())
     setPlatforms(await platformsRes.json())
     setShops(await shopsRes.json())
+    setPageLoading(false)
   }
 
   useEffect(() => {
@@ -140,13 +143,27 @@ export default function ExpensesPage() {
       return acc
     }, {} as Record<string, number>)
 
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">จัดการค่าใช้จ่าย</h1>
+    <div className="space-y-6 pt-12 lg:pt-0">
+      <div className="flex items-center gap-3">
+        <Wallet className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl md:text-3xl font-bold">จัดการค่าใช้จ่าย</h1>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>บันทึกค่าใช้จ่าย</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Plus className="h-5 w-5" />
+            บันทึกค่าใช้จ่าย
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -166,13 +183,14 @@ export default function ExpensesPage() {
                 }}
                 className="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
               />
-              <Label htmlFor="isAdCost" className="text-blue-800 font-medium cursor-pointer">
-                📢 นี่คือค่าโฆษณา (Ad Cost)
+              <Label htmlFor="isAdCost" className="text-blue-800 font-medium cursor-pointer flex items-center gap-2">
+                <Megaphone className="h-4 w-4" />
+                นี่คือค่าโฆษณา (Ad Cost)
               </Label>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-5">
-              <div className="md:col-span-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="sm:col-span-2">
                 <Label htmlFor="description">รายละเอียด</Label>
                 <Input
                   id="description"
@@ -264,59 +282,81 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={loading}>
-              {loading ? "กำลังบันทึก..." : "บันทึกค่าใช้จ่าย"}
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  บันทึกค่าใช้จ่าย
+                </>
+              )}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">ค่าใช้จ่ายรวม</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-red-600" />
+              ค่าใช้จ่ายรวม
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+            <div className="text-xl sm:text-3xl font-bold text-red-600">
               ฿{totalExpenses.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">📢 ค่าโฆษณารวม</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-orange-600" />
+              ค่าโฆษณารวม
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
+            <div className="text-xl sm:text-3xl font-bold text-orange-600">
               ฿{totalAdCosts.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">ค่าใช้จ่ายอื่นๆ</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-red-600" />
+              ค่าใช้จ่ายอื่นๆ
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+            <div className="text-xl sm:text-3xl font-bold text-red-600">
               ฿{totalOtherExpenses.toLocaleString()}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>📢 ค่าโฆษณาตามแพลตฟอร์ม/ร้าน</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Megaphone className="h-5 w-5 text-orange-600" />
+              ค่าโฆษณาตามแพลตฟอร์ม/ร้าน
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {Object.entries(adCostsByPlatformShop).map(([key, amount]) => (
-                <div key={key} className="flex justify-between">
-                  <span>{key}</span>
-                  <span className="font-semibold text-orange-600">฿{amount.toLocaleString()}</span>
+                <div key={key} className="flex justify-between text-sm sm:text-base">
+                  <span className="truncate mr-2">{key}</span>
+                  <span className="font-semibold text-orange-600 whitespace-nowrap">฿{amount.toLocaleString()}</span>
                 </div>
               ))}
               {Object.keys(adCostsByPlatformShop).length === 0 && (
@@ -328,12 +368,15 @@ export default function ExpensesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>ค่าใช้จ่ายตามหมวดหมู่</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Wallet className="h-5 w-5 text-red-600" />
+              ค่าใช้จ่ายตามหมวดหมู่
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {Object.entries(expensesByCategory).map(([cat, amount]) => (
-                <div key={cat} className="flex justify-between">
+                <div key={cat} className="flex justify-between text-sm sm:text-base">
                   <span>{cat}</span>
                   <span className="font-semibold text-red-600">฿{amount.toLocaleString()}</span>
                 </div>
@@ -348,73 +391,81 @@ export default function ExpensesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>รายการค่าใช้จ่าย ({expenses.length} รายการ)</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <CreditCard className="h-5 w-5" />
+            รายการค่าใช้จ่าย ({expenses.length} รายการ)
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>วันที่</TableHead>
-                <TableHead>รายละเอียด</TableHead>
-                <TableHead>ประเภท</TableHead>
-                <TableHead>แพลตฟอร์ม/ร้าน</TableHead>
-                <TableHead className="text-right">จำนวนเงิน</TableHead>
-                <TableHead className="text-right">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>
-                    {new Date(expense.date).toLocaleDateString("th-TH")}
-                  </TableCell>
-                  <TableCell>{expense.description}</TableCell>
-                  <TableCell>
-                    {expense.isAdCost ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-                        📢 ค่าโฆษณา
-                      </span>
-                    ) : (
-                      expense.category
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {expense.platform ? (
-                      <div>
-                        <div>{expense.platform.name}</div>
-                        {expense.shop && (
-                          <div className="text-xs text-muted-foreground">
-                            🏪 {expense.shop.name}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell className={`text-right font-medium ${expense.isAdCost ? "text-orange-600" : "text-red-600"}`}>
-                    ฿{expense.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(expense.id)}
-                    >
-                      ลบ
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {expenses.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    ยังไม่มีค่าใช้จ่าย
-                  </TableCell>
+                  <TableHead>วันที่</TableHead>
+                  <TableHead>รายละเอียด</TableHead>
+                  <TableHead className="hidden sm:table-cell">ประเภท</TableHead>
+                  <TableHead className="hidden md:table-cell">แพลตฟอร์ม/ร้าน</TableHead>
+                  <TableHead className="text-right">จำนวนเงิน</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {expenses.map((expense) => (
+                  <TableRow key={expense.id}>
+                    <TableCell className="text-xs sm:text-sm">
+                      {new Date(expense.date).toLocaleDateString("th-TH")}
+                    </TableCell>
+                    <TableCell className="max-w-[100px] sm:max-w-none truncate">{expense.description}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {expense.isAdCost ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                          <Megaphone className="h-3 w-3" />
+                          ค่าโฆษณา
+                        </span>
+                      ) : (
+                        expense.category
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {expense.platform ? (
+                        <div>
+                          <div>{expense.platform.name}</div>
+                          {expense.shop && (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Store className="h-3 w-3" />
+                              {expense.shop.name}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell className={`text-right font-medium text-xs sm:text-sm ${expense.isAdCost ? "text-orange-600" : "text-red-600"}`}>
+                      ฿{expense.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(expense.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {expenses.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <Wallet className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      ยังไม่มีค่าใช้จ่าย
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

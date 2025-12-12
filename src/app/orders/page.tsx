@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ShoppingCart, Plus, Minus, Trash2, TrendingUp, DollarSign, Loader2, AlertCircle, Package } from "lucide-react"
 
 interface Product {
   id: number
@@ -72,6 +73,7 @@ export default function OrdersPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [platforms, setPlatforms] = useState<Platform[]>([])
   const [shops, setShops] = useState<Shop[]>([])
+  const [pageLoading, setPageLoading] = useState(true)
 
   const [employeeId, setEmployeeId] = useState("")
   const [platformId, setPlatformId] = useState("")
@@ -100,6 +102,7 @@ export default function OrdersPage() {
     setEmployees(await employeesRes.json())
     setPlatforms(await platformsRes.json())
     setShops(await shopsRes.json())
+    setPageLoading(false)
   }
 
   useEffect(() => {
@@ -213,27 +216,45 @@ export default function OrdersPage() {
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalPrice, 0)
   const totalCommission = orders.reduce((sum, o) => sum + o.commission, 0)
 
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">จัดการออเดอร์</h1>
+    <div className="space-y-6 pt-12 lg:pt-0">
+      <div className="flex items-center gap-3">
+        <ShoppingCart className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl md:text-3xl font-bold">จัดการออเดอร์</h1>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>บันทึกออเดอร์ใหม่</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Plus className="h-5 w-5" />
+            บันทึกออเดอร์ใหม่
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
                 {error}
               </div>
             )}
 
             {/* Add product to cart */}
             <div className="border rounded-lg p-4 bg-gray-50">
-              <h3 className="font-semibold mb-3">เพิ่มสินค้า</h3>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="md:col-span-2">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                เพิ่มสินค้า
+              </h3>
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                <div className="sm:col-span-2">
                   <Label htmlFor="product">สินค้า</Label>
                   <Select
                     id="product"
@@ -260,7 +281,8 @@ export default function OrdersPage() {
                 </div>
                 <div className="flex items-end">
                   <Button type="button" onClick={addToCart} variant="outline" className="w-full">
-                    + เพิ่มสินค้า
+                    <Plus className="h-4 w-4 mr-1" />
+                    เพิ่มสินค้า
                   </Button>
                 </div>
               </div>
@@ -269,22 +291,25 @@ export default function OrdersPage() {
             {/* Cart items */}
             {cart.length > 0 && (
               <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">รายการสินค้าในออเดอร์</h3>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  รายการสินค้าในออเดอร์ ({cart.length} รายการ)
+                </h3>
                 <div className="space-y-2">
                   {cart.map((item) => (
                     <div
                       key={item.productId}
-                      className="flex items-center justify-between bg-white p-2 rounded border"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-2 rounded border gap-2"
                     >
-                      <span className="font-medium">{item.productName}</span>
-                      <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{item.productName}</span>
+                      <div className="flex items-center gap-2 justify-end">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
                         >
-                          -
+                          <Minus className="h-3 w-3" />
                         </Button>
                         <span className="w-10 text-center">{item.quantity}</span>
                         <Button
@@ -293,7 +318,7 @@ export default function OrdersPage() {
                           size="sm"
                           onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
                         >
-                          +
+                          <Plus className="h-3 w-3" />
                         </Button>
                         <Button
                           type="button"
@@ -301,7 +326,7 @@ export default function OrdersPage() {
                           size="sm"
                           onClick={() => removeFromCart(item.productId)}
                         >
-                          ลบ
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
@@ -311,7 +336,7 @@ export default function OrdersPage() {
             )}
 
             {/* Order details */}
-            <div className="grid gap-4 md:grid-cols-6">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
               <div>
                 <Label htmlFor="employee">พนักงาน</Label>
                 <Select
@@ -364,7 +389,7 @@ export default function OrdersPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="totalPrice">ราคารวมทั้งออเดอร์ (บาท)</Label>
+                <Label htmlFor="totalPrice">ราคารวม (บาท)</Label>
                 <Input
                   id="totalPrice"
                   type="number"
@@ -386,7 +411,17 @@ export default function OrdersPage() {
               </div>
               <div className="flex items-end">
                 <Button type="submit" disabled={loading || cart.length === 0} className="w-full">
-                  {loading ? "กำลังบันทึก..." : "บันทึกออเดอร์"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      กำลังบันทึก...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      บันทึกออเดอร์
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -394,23 +429,29 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">ยอดขายรวม</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              ยอดขายรวม
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
               ฿{totalRevenue.toLocaleString()}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">ค่าคอมมิชชั่นรวม</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-blue-600" />
+              คอมมิชชั่นรวม
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
               ฿{totalCommission.toLocaleString()}
             </div>
           </CardContent>
@@ -419,70 +460,82 @@ export default function OrdersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>รายการออเดอร์ ({orders.length} รายการ)</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <ShoppingCart className="h-5 w-5" />
+            รายการออเดอร์ ({orders.length} รายการ)
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>วันที่</TableHead>
-                <TableHead>สินค้า</TableHead>
-                <TableHead>พนักงาน</TableHead>
-                <TableHead>แพลตฟอร์ม</TableHead>
-                <TableHead>ร้านค้า</TableHead>
-                <TableHead className="text-right">รวม</TableHead>
-                <TableHead className="text-right">คอมมิชชั่น</TableHead>
-                <TableHead>หมายเหตุ</TableHead>
-                <TableHead className="text-right">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString("th-TH")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="text-sm">
-                          {item.product.name} x{item.quantity}
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>{order.employee.name}</TableCell>
-                  <TableCell>{order.platform.name}</TableCell>
-                  <TableCell>{order.shop?.name || "-"}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    ฿{order.totalPrice.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right text-blue-600">
-                    ฿{order.commission.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {order.note || "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(order.id)}
-                    >
-                      ลบ
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {orders.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
-                    ยังไม่มีออเดอร์
-                  </TableCell>
+                  <TableHead>วันที่</TableHead>
+                  <TableHead>สินค้า</TableHead>
+                  <TableHead className="hidden sm:table-cell">พนักงาน</TableHead>
+                  <TableHead className="hidden md:table-cell">แพลตฟอร์ม</TableHead>
+                  <TableHead className="hidden lg:table-cell">ร้านค้า</TableHead>
+                  <TableHead className="text-right">รวม</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">คอมมิชชั่น</TableHead>
+                  <TableHead className="hidden lg:table-cell">หมายเหตุ</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="text-xs sm:text-sm">
+                      {new Date(order.createdAt).toLocaleDateString("th-TH")}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 max-w-[100px] sm:max-w-none">
+                        {order.items.slice(0, 2).map((item) => (
+                          <div key={item.id} className="text-xs sm:text-sm truncate">
+                            {item.product.name} x{item.quantity}
+                          </div>
+                        ))}
+                        {order.items.length > 2 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{order.items.length - 2} รายการ
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{order.employee.name}</TableCell>
+                    <TableCell className="hidden md:table-cell">{order.platform.name}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{order.shop?.name || "-"}</TableCell>
+                    <TableCell className="text-right font-medium text-xs sm:text-sm">
+                      ฿{order.totalPrice.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-blue-600 hidden sm:table-cell">
+                      ฿{order.commission.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-500 hidden lg:table-cell">
+                      {order.note || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(order.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-1">ลบ</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {orders.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      ยังไม่มีออเดอร์
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
