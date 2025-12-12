@@ -75,6 +75,9 @@ export async function POST(request: Request) {
     // Create order with items and deduct stock in a transaction
     const order = await prisma.$transaction(async (tx) => {
       // Create the order
+      // Parse order date if provided, otherwise use current date
+      const orderDate = body.orderDate ? new Date(body.orderDate + 'T00:00:00') : new Date()
+
       const newOrder = await tx.order.create({
         data: {
           employeeId: parseInt(body.employeeId),
@@ -83,6 +86,7 @@ export async function POST(request: Request) {
           commission,
           note: body.note || null,
           shopId: body.shopId ? parseInt(body.shopId) : null,
+          createdAt: orderDate,
           items: {
             create: items.map((item) => {
               const product = products.find((p) => p.id === parseInt(item.productId.toString()))!

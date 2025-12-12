@@ -4,6 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import {
   LayoutDashboard,
   Package,
@@ -16,6 +19,7 @@ import {
   Wallet,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react"
 
 const menuItems = [
@@ -37,17 +41,19 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile menu button */}
-      <button
+      <Button
+        variant="default"
+        size="icon"
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 shadow-lg"
       >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
+      </Button>
 
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -55,36 +61,63 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white min-h-screen p-4 transform transition-transform duration-300 ease-in-out",
+          "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 to-slate-950 text-white min-h-screen p-4 transform transition-transform duration-300 ease-in-out flex flex-col",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="mb-8 mt-12 lg:mt-0">
-          <h1 className="text-xl font-bold text-center">The Rich24</h1>
-          <p className="text-sm text-slate-400 text-center">Sales Tracker</p>
+        {/* Logo */}
+        <div className="mb-6 mt-12 lg:mt-0">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              The Rich24
+            </h1>
+          </div>
+          <p className="text-xs text-slate-400 text-center">Sales Tracker System</p>
         </div>
 
-        <nav className="space-y-1">
+        <Separator className="bg-slate-700 mb-4" />
+
+        {/* Navigation */}
+        <nav className="space-y-1 flex-1">
           {menuItems.map((item) => {
             const Icon = item.icon
+            const isActive = pathname === item.href
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
-                  pathname === item.href
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white hover:translate-x-1"
+                  "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group",
+                  isActive
+                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25"
+                    : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
                 )}
               >
-                <Icon size={20} />
-                <span className="font-medium">{item.label}</span>
+                <Icon size={18} className={cn(
+                  "transition-transform group-hover:scale-110",
+                  isActive && "text-blue-200"
+                )} />
+                <span className="font-medium text-sm">{item.label}</span>
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-200" />
+                )}
               </Link>
             )
           })}
         </nav>
+
+        <Separator className="bg-slate-700 my-4" />
+
+        {/* Footer */}
+        <div className="text-center">
+          <Badge variant="outline" className="text-xs border-slate-700 text-slate-400">
+            v1.0.0
+          </Badge>
+        </div>
       </div>
     </>
   )

@@ -4,7 +4,13 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -116,23 +122,32 @@ export default function StockInPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             <div>
-              <Label htmlFor="product">สินค้า</Label>
+              <Label htmlFor="product" className="flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                สินค้า
+              </Label>
               <Select
-                id="product"
                 value={productId}
-                onChange={(e) => handleProductChange(e.target.value)}
+                onValueChange={handleProductChange}
                 required
               >
-                <option value="">เลือกสินค้า</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} (คงเหลือ: {p.stock})
-                  </option>
-                ))}
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="เลือกสินค้า" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.name} (คงเหลือ: {p.stock})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="quantity">จำนวน</Label>
+              <Label htmlFor="quantity" className="flex items-center gap-1.5">
+                <ListOrdered className="h-3.5 w-3.5 text-muted-foreground" />
+                จำนวน
+              </Label>
               <Input
                 id="quantity"
                 type="number"
@@ -144,7 +159,10 @@ export default function StockInPage() {
               />
             </div>
             <div>
-              <Label htmlFor="costPerUnit">ต้นทุน/ชิ้น (บาท)</Label>
+              <Label htmlFor="costPerUnit" className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                ต้นทุน/ชิ้น (บาท)
+              </Label>
               <Input
                 id="costPerUnit"
                 type="number"
@@ -156,7 +174,7 @@ export default function StockInPage() {
               />
             </div>
             <div>
-              <Label htmlFor="note">หมายเหตุ</Label>
+              <Label htmlFor="note" className="flex items-center gap-1.5">หมายเหตุ</Label>
               <Input
                 id="note"
                 value={note}

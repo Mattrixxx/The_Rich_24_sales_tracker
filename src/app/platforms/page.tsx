@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
 import {
   Table,
   TableBody,
@@ -26,6 +29,8 @@ export default function PlatformsPage() {
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const fetchPlatforms = async () => {
     const res = await fetch("/api/platforms")
@@ -53,10 +58,14 @@ export default function PlatformsPage() {
     fetchPlatforms()
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("ต้องการลบแพลตฟอร์มนี้?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleteLoading(true)
 
-    await fetch(`/api/platforms/${id}`, { method: "DELETE" })
+    await fetch(`/api/platforms/${deleteId}`, { method: "DELETE" })
+    
+    setDeleteLoading(false)
+    setDeleteId(null)
     fetchPlatforms()
   }
 
@@ -70,12 +79,23 @@ export default function PlatformsPage() {
 
   return (
     <div className="space-y-6 pt-12 lg:pt-0">
-      <div className="flex items-center gap-3">
-        <Globe className="h-8 w-8 text-primary" />
-        <h1 className="text-2xl md:text-3xl font-bold">จัดการแพลตฟอร์ม</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Globe className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">จัดการแพลตฟอร์ม</h1>
+            <p className="text-sm text-muted-foreground">ช่องทางการขายทั้งหมด</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="gap-1">
+          <Globe className="h-3 w-3" />
+          {platforms.length} แพลตฟอร์ม
+        </Badge>
       </div>
 
-      <Card>
+      <Card className="border-dashed border-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Plus className="h-5 w-5" />
@@ -115,27 +135,37 @@ export default function PlatformsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Globe className="h-5 w-5" />
-            รายการแพลตฟอร์ม ({platforms.length} แพลตฟอร์ม)
+            รายการแพลตฟอร์ม
+            <Badge variant="secondary" className="ml-2">{platforms.length} แพลตฟอร์ม</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <Separator />
+        <CardContent className="pt-4">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50">
                   <TableHead>ชื่อแพลตฟอร์ม</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {platforms.map((platform) => (
-                  <TableRow key={platform.id}>
-                    <TableCell className="font-medium">{platform.name}</TableCell>
+                  <TableRow key={platform.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <Globe className="h-4 w-4 text-white" />
+                        </div>
+                        {platform.name}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(platform.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteId(platform.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="hidden sm:inline ml-1">ลบ</span>
@@ -145,9 +175,10 @@ export default function PlatformsPage() {
                 ))}
                 {platforms.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
-                      <Globe className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      ยังไม่มีแพลตฟอร์ม
+                    <TableCell colSpan={2} className="text-center text-muted-foreground py-12">
+                      <Globe className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">ยังไม่มีแพลตฟอร์ม</p>
+                      <p className="text-sm">เริ่มต้นด้วยการเพิ่มแพลตฟอร์มใหม่</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -156,6 +187,15 @@ export default function PlatformsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="ลบแพลตฟอร์ม"
+        description="คุณแน่ใจหรือไม่ที่จะลบแพลตฟอร์มนี้? ร้านค้าที่เกี่ยวข้องจะต้องถูกลบก่อน"
+        loading={deleteLoading}
+      />
     </div>
   )
 }

@@ -4,8 +4,17 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
 import {
   Table,
   TableBody,
@@ -14,7 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ShoppingCart, Plus, Minus, Trash2, TrendingUp, DollarSign, Loader2, AlertCircle, Package } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Trash2, TrendingUp, DollarSign, Loader2, AlertCircle, Package, Users, Globe, Store, FileText, Calendar } from "lucide-react"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface Product {
   id: number
@@ -83,10 +93,12 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // Cart for multiple products
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProductId, setSelectedProductId] = useState("")
   const [selectedQuantity, setSelectedQuantity] = useState("1")
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [orderDate, setOrderDate] = useState<Date | undefined>(new Date())
 
   const fetchData = async () => {
     const [ordersRes, productsRes, employeesRes, platformsRes, shopsRes] = await Promise.all([
@@ -171,6 +183,14 @@ export default function OrdersPage() {
     setLoading(true)
     setError("")
 
+    // Format date without timezone issues
+    const formatDateLocal = (d: Date) => {
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -180,6 +200,7 @@ export default function OrdersPage() {
         shopId: shopId || null,
         totalPrice,
         note,
+        orderDate: orderDate ? formatDateLocal(orderDate) : formatDateLocal(new Date()),
         items: cart.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -202,14 +223,18 @@ export default function OrdersPage() {
     setTotalPrice("")
     setNote("")
     setCart([])
+    setOrderDate(new Date())
     setLoading(false)
     fetchData()
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("ต้องการลบออเดอร์นี้?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleteLoading(true)
 
-    await fetch(`/api/orders/${id}`, { method: "DELETE" })
+    await fetch(`/api/orders/${deleteId}`, { method: "DELETE" })
+    setDeleteId(null)
+    setDeleteLoading(false)
     fetchData()
   }
 
@@ -257,16 +282,19 @@ export default function OrdersPage() {
                 <div className="sm:col-span-2">
                   <Label htmlFor="product">สินค้า</Label>
                   <Select
-                    id="product"
                     value={selectedProductId}
-                    onChange={(e) => setSelectedProductId(e.target.value)}
+                    onValueChange={setSelectedProductId}
                   >
-                    <option value="">เลือกสินค้า</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (คงเหลือ: {p.stock})
-                      </option>
-                    ))}
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="เลือกสินค้า" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.name} (คงเหลือ: {p.stock})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -338,58 +366,79 @@ export default function OrdersPage() {
             {/* Order details */}
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
               <div>
-                <Label htmlFor="employee">พนักงาน</Label>
+                <Label htmlFor="employee" className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  พนักงาน
+                </Label>
                 <Select
-                  id="employee"
                   value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
+                  onValueChange={setEmployeeId}
                   required
                 >
-                  <option value="">เลือกพนักงาน</option>
-                  {employees.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name}
-                    </option>
-                  ))}
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกพนักงาน" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((e) => (
+                      <SelectItem key={e.id} value={e.id.toString()}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="platform">แพลตฟอร์ม</Label>
+                <Label htmlFor="platform" className="flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                  แพลตฟอร์ม
+                </Label>
                 <Select
-                  id="platform"
                   value={platformId}
-                  onChange={(e) => {
-                    setPlatformId(e.target.value)
+                  onValueChange={(value) => {
+                    setPlatformId(value)
                     setShopId("") // Reset shop when platform changes
                   }}
                   required
                 >
-                  <option value="">เลือกแพลตฟอร์ม</option>
-                  {platforms.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกแพลตฟอร์ม" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {platforms.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="shop">ร้านค้า</Label>
+                <Label htmlFor="shop" className="flex items-center gap-1.5">
+                  <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                  ร้านค้า
+                </Label>
                 <Select
-                  id="shop"
                   value={shopId}
-                  onChange={(e) => setShopId(e.target.value)}
+                  onValueChange={setShopId}
                   disabled={!platformId}
                 >
-                  <option value="">เลือกร้านค้า (ถ้ามี)</option>
-                  {filteredShops.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกร้านค้า (ถ้ามี)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredShops.map((s) => (
+                      <SelectItem key={s.id} value={s.id.toString()}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="totalPrice">ราคารวม (บาท)</Label>
+                <Label htmlFor="totalPrice" className="flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                  ราคารวม (บาท)
+                </Label>
                 <Input
                   id="totalPrice"
                   type="number"
@@ -401,7 +450,19 @@ export default function OrdersPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="note">หมายเหตุ</Label>
+                <Label htmlFor="orderDate" className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  วันที่
+                </Label>
+                <DatePicker
+                  date={orderDate}
+                  onDateChange={setOrderDate}
+                  placeholder="เลือกวันที่"
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="note" className="flex items-center gap-1.5">หมายเหตุ</Label>
                 <Input
                   id="note"
                   value={note}
@@ -517,7 +578,7 @@ export default function OrdersPage() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDelete(order.id)}
+                        onClick={() => setDeleteId(order.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="hidden sm:inline ml-1">ลบ</span>
@@ -538,6 +599,15 @@ export default function OrdersPage() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="ลบออเดอร์"
+        description="คุณต้องการลบออเดอร์นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้"
+        loading={deleteLoading}
+      />
     </div>
   )
 }

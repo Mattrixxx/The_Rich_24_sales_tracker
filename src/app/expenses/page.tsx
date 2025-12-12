@@ -4,8 +4,19 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   Table,
   TableBody,
@@ -14,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Wallet, Plus, Trash2, Loader2, Megaphone, CreditCard, Store } from "lucide-react"
+import { Wallet, Plus, Trash2, Loader2, Megaphone, CreditCard, Store, Calendar, Globe, FolderOpen } from "lucide-react"
 
 interface Platform {
   id: number
@@ -59,9 +70,11 @@ export default function ExpensesPage() {
   const [isAdCost, setIsAdCost] = useState(false)
   const [platformId, setPlatformId] = useState("")
   const [shopId, setShopId] = useState("")
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [date, setDate] = useState<Date | undefined>(new Date())
   const [loading, setLoading] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const fetchData = async () => {
     const [expensesRes, platformsRes, shopsRes] = await Promise.all([
@@ -88,6 +101,14 @@ export default function ExpensesPage() {
     e.preventDefault()
     setLoading(true)
 
+    // Format date without timezone issues
+    const formatDateLocal = (d: Date) => {
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
     await fetch("/api/expenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -98,7 +119,7 @@ export default function ExpensesPage() {
         isAdCost,
         platformId: isAdCost ? platformId : null,
         shopId: isAdCost ? shopId : null,
-        date,
+        date: date ? formatDateLocal(date) : formatDateLocal(new Date()),
       }),
     })
 
@@ -108,15 +129,19 @@ export default function ExpensesPage() {
     setIsAdCost(false)
     setPlatformId("")
     setShopId("")
-    setDate(new Date().toISOString().split("T")[0])
+    setDate(new Date())
     setLoading(false)
     fetchData()
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("ต้องการลบรายการนี้?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleteLoading(true)
 
-    await fetch(`/api/expenses/${id}`, { method: "DELETE" })
+    await fetch(`/api/expenses/${deleteId}`, { method: "DELETE" })
+    
+    setDeleteLoading(false)
+    setDeleteId(null)
     fetchData()
   }
 
@@ -153,12 +178,23 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6 pt-12 lg:pt-0">
-      <div className="flex items-center gap-3">
-        <Wallet className="h-8 w-8 text-primary" />
-        <h1 className="text-2xl md:text-3xl font-bold">จัดการค่าใช้จ่าย</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Wallet className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">จัดการค่าใช้จ่าย</h1>
+            <p className="text-sm text-muted-foreground">บันทึกค่าใช้จ่ายและค่าโฆษณา</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="gap-1">
+          <CreditCard className="h-3 w-3" />
+          {expenses.length} รายการ
+        </Badge>
       </div>
 
-      <Card>
+      <Card className="border-dashed border-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Plus className="h-5 w-5" />
@@ -168,22 +204,21 @@ export default function ExpensesPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Ad cost toggle */}
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <Checkbox
                 id="isAdCost"
                 checked={isAdCost}
-                onChange={(e) => {
-                  setIsAdCost(e.target.checked)
-                  if (e.target.checked) {
+                onCheckedChange={(checked) => {
+                  setIsAdCost(checked === true)
+                  if (checked) {
                     setCategory("")
                   } else {
                     setPlatformId("")
                   }
                 }}
-                className="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                className="h-5 w-5 border-orange-300 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
               />
-              <Label htmlFor="isAdCost" className="text-blue-800 font-medium cursor-pointer flex items-center gap-2">
+              <Label htmlFor="isAdCost" className="text-orange-800 font-medium cursor-pointer flex items-center gap-2">
                 <Megaphone className="h-4 w-4" />
                 นี่คือค่าโฆษณา (Ad Cost)
               </Label>
@@ -216,68 +251,87 @@ export default function ExpensesPage() {
               {isAdCost ? (
                 <>
                   <div>
-                    <Label htmlFor="platform">แพลตฟอร์ม</Label>
+                    <Label htmlFor="platform" className="flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                      แพลตฟอร์ม
+                    </Label>
                     <Select
-                      id="platform"
                       value={platformId}
-                      onChange={(e) => {
-                        setPlatformId(e.target.value)
+                      onValueChange={(value) => {
+                        setPlatformId(value)
                         setShopId("") // Reset shop when platform changes
                       }}
                       required
                     >
-                      <option value="">เลือกแพลตฟอร์ม</option>
-                      {platforms.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกแพลตฟอร์ม" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {platforms.map((p) => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="shop">ร้านค้า</Label>
+                    <Label htmlFor="shop" className="flex items-center gap-1.5">
+                      <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                      ร้านค้า
+                    </Label>
                     <Select
-                      id="shop"
                       value={shopId}
-                      onChange={(e) => setShopId(e.target.value)}
+                      onValueChange={setShopId}
                       disabled={!platformId}
                     >
-                      <option value="">เลือกร้านค้า (ถ้ามี)</option>
-                      {filteredShops.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกร้านค้า (ถ้ามี)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredShops.map((s) => (
+                          <SelectItem key={s.id} value={s.id.toString()}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                 </>
               ) : (
                 <div>
-                  <Label htmlFor="category">หมวดหมู่</Label>
+                  <Label htmlFor="category" className="flex items-center gap-1.5">
+                    <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                    หมวดหมู่
+                  </Label>
                   <Select
-                    id="category"
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onValueChange={setCategory}
                     required
                   >
-                    <option value="">เลือกหมวดหมู่</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="เลือกหมวดหมู่" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
               )}
 
               <div>
-                <Label htmlFor="date">วันที่</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
+                <Label htmlFor="date" className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  วันที่
+                </Label>
+                <DatePicker
+                  date={date}
+                  onDateChange={setDate}
+                  placeholder="เลือกวันที่"
                 />
               </div>
             </div>
@@ -446,9 +500,10 @@ export default function ExpensesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(expense.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteId(expense.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -457,9 +512,10 @@ export default function ExpensesPage() {
                 ))}
                 {expenses.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      <Wallet className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      ยังไม่มีค่าใช้จ่าย
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                      <Wallet className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">ยังไม่มีค่าใช้จ่าย</p>
+                      <p className="text-sm">เริ่มต้นด้วยการบันทึกค่าใช้จ่ายใหม่</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -468,6 +524,15 @@ export default function ExpensesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="ลบค่าใช้จ่าย"
+        description="คุณแน่ใจหรือไม่ที่จะลบรายการค่าใช้จ่ายนี้?"
+        loading={deleteLoading}
+      />
     </div>
   )
 }

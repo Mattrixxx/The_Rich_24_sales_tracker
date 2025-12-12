@@ -2,9 +2,18 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { DatePicker } from "@/components/ui/date-picker"
+import { MonthPicker } from "@/components/ui/month-picker"
+import { YearPicker } from "@/components/ui/year-picker"
 import {
   Table,
   TableBody,
@@ -137,13 +146,22 @@ interface DashboardData {
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [filterType, setFilterType] = useState("all")
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0])
+  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date())
   const [loading, setLoading] = useState(true)
+
+  // Helper function to format date without timezone issues
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/dashboard?filterType=${filterType}&filterDate=${filterDate}`)
+      const dateStr = filterDate ? formatDateLocal(filterDate) : formatDateLocal(new Date())
+      const res = await fetch(`/api/dashboard?filterType=${filterType}&filterDate=${dateStr}`)
       const json = await res.json()
       setData(json)
     } catch (error) {
@@ -158,14 +176,14 @@ export default function Dashboard() {
 
   const getFilterLabel = () => {
     if (filterType === "all") return "ทั้งหมด"
-    const date = new Date(filterDate)
+    if (!filterDate) return ""
     switch (filterType) {
       case "day":
-        return date.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })
+        return filterDate.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })
       case "month":
-        return date.toLocaleDateString("th-TH", { month: "long", year: "numeric" })
+        return filterDate.toLocaleDateString("th-TH", { month: "long", year: "numeric" })
       case "year":
-        return `ปี ${date.getFullYear() + 543}`
+        return `ปี ${filterDate.getFullYear() + 543}`
       default:
         return ""
     }
@@ -184,41 +202,51 @@ export default function Dashboard() {
     <div className="space-y-4 md:space-y-6 pt-12 lg:pt-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-bold">แดชบอร์ด</h1>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-end">
-          <div className="flex-1 sm:flex-none">
-            <Label htmlFor="filterType" className="text-sm">ช่วงเวลา</Label>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="space-y-1.5">
+            <Label className="flex items-center text-sm">ช่วงเวลา</Label>
             <Select
-              id="filterType"
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full sm:w-32"
+              onValueChange={setFilterType}
             >
-              <option value="all">ทั้งหมด</option>
-              <option value="day">รายวัน</option>
-              <option value="month">รายเดือน</option>
-              <option value="year">รายปี</option>
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue placeholder="เลือกช่วงเวลา" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทั้งหมด</SelectItem>
+                <SelectItem value="day">รายวัน</SelectItem>
+                <SelectItem value="month">รายเดือน</SelectItem>
+                <SelectItem value="year">รายปี</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           {filterType !== "all" && (
-            <div className="flex-1 sm:flex-none">
-              <Label htmlFor="filterDate" className="text-sm">
+            <div className="space-y-1.5">
+              <Label className="flex items-center text-sm">
                 {filterType === "day" ? "วันที่" : filterType === "month" ? "เดือน" : "ปี"}
               </Label>
-              <Input
-                id="filterDate"
-                type={filterType === "day" ? "date" : filterType === "month" ? "month" : "number"}
-                value={filterType === "year" ? new Date(filterDate).getFullYear().toString() : filterDate}
-                onChange={(e) => {
-                  if (filterType === "year") {
-                    setFilterDate(`${e.target.value}-01-01`)
-                  } else {
-                    setFilterDate(e.target.value)
-                  }
-                }}
-                className="w-full sm:w-40"
-                min={filterType === "year" ? "2020" : undefined}
-                max={filterType === "year" ? "2030" : undefined}
-              />
+              {filterType === "day" ? (
+                <DatePicker
+                  date={filterDate}
+                  onDateChange={setFilterDate}
+                  placeholder="เลือกวันที่"
+                  className="w-full sm:w-52"
+                />
+              ) : filterType === "month" ? (
+                <MonthPicker
+                  date={filterDate}
+                  onDateChange={setFilterDate}
+                  placeholder="เลือกเดือน"
+                  className="w-full sm:w-52"
+                />
+              ) : (
+                <YearPicker
+                  date={filterDate}
+                  onDateChange={setFilterDate}
+                  placeholder="เลือกปี"
+                  className="w-full sm:w-40"
+                />
+              )}
             </div>
           )}
         </div>

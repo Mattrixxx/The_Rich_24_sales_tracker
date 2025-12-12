@@ -4,7 +4,13 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -15,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { RotateCcw, Plus, Loader2, CheckCircle, XCircle, Package, DollarSign, AlertTriangle, Edit, Trash2, Save, X } from "lucide-react"
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
 
 interface Product {
   id: number
@@ -49,6 +56,8 @@ export default function ReturnsPage() {
   const [returnToStock, setReturnToStock] = useState("true")
   const [reason, setReason] = useState("")
   const [note, setNote] = useState("")
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const fetchReturns = async () => {
     try {
@@ -132,16 +141,19 @@ export default function ReturnsPage() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("ต้องการลบรายการตีกลับนี้หรือไม่?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleteLoading(true)
 
     try {
-      await fetch(`/api/returns/${id}`, { method: "DELETE" })
+      await fetch(`/api/returns/${deleteId}`, { method: "DELETE" })
       fetchReturns()
       fetchProducts() // Refresh product stock
     } catch (error) {
       console.error("Failed to delete return:", error)
     }
+    setDeleteId(null)
+    setDeleteLoading(false)
   }
 
   // Calculate totals
@@ -241,24 +253,33 @@ export default function ReturnsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="productId">สินค้า *</Label>
+                  <Label htmlFor="productId" className="flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                    สินค้า *
+                  </Label>
                   <Select
-                    id="productId"
                     value={productId}
-                    onChange={(e) => setProductId(e.target.value)}
+                    onValueChange={setProductId}
                     required
                   >
-                    <option value="">เลือกสินค้า</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} (สต็อก: {product.stock})
-                      </option>
-                    ))}
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="เลือกสินค้า" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id.toString()}>
+                          {product.name} (สต็อก: {product.stock})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">จำนวน (ชิ้น) *</Label>
+                  <Label htmlFor="quantity" className="flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
+                    จำนวน (ชิ้น) *
+                  </Label>
                   <Input
                     id="quantity"
                     type="number"
@@ -271,7 +292,10 @@ export default function ReturnsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="amount">ยอดเงิน (บาท) *</Label>
+                  <Label htmlFor="amount" className="flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    ยอดเงิน (บาท) *
+                  </Label>
                   <Input
                     id="amount"
                     type="number"
@@ -287,32 +311,39 @@ export default function ReturnsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="returnToStock">คืนเข้าสต็อก *</Label>
                   <Select
-                    id="returnToStock"
                     value={returnToStock}
-                    onChange={(e) => setReturnToStock(e.target.value)}
+                    onValueChange={setReturnToStock}
                     required
                   >
-                    <option value="true">คืนเข้าสต็อก</option>
-                    <option value="false">ไม่คืน (เสียหาย)</option>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="เลือก" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">คืนเข้าสต็อก</SelectItem>
+                      <SelectItem value="false">ไม่คืน (เสียหาย)</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="reason">เหตุผล</Label>
                   <Select
-                    id="reason"
                     value={reason}
-                    onChange={(e) => setReason(e.target.value)}
+                    onValueChange={setReason}
                   >
-                    <option value="">เลือกเหตุผล</option>
-                    <option value="ลูกค้าเปลี่ยนใจ">ลูกค้าเปลี่ยนใจ</option>
-                    <option value="สินค้าไม่ตรงปก">สินค้าไม่ตรงปก</option>
-                    <option value="สินค้าชำรุด">สินค้าชำรุด</option>
-                    <option value="ส่งผิดสินค้า">ส่งผิดสินค้า</option>
-                    <option value="ลูกค้าปฏิเสธรับ">ลูกค้าปฏิเสธรับ</option>
-                    <option value="ที่อยู่ไม่ถูกต้อง">ที่อยู่ไม่ถูกต้อง</option>
-                    <option value="สินค้าเสียหายระหว่างขนส่ง">สินค้าเสียหายระหว่างขนส่ง</option>
-                    <option value="อื่นๆ">อื่นๆ</option>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="เลือกเหตุผล" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ลูกค้าเปลี่ยนใจ">ลูกค้าเปลี่ยนใจ</SelectItem>
+                      <SelectItem value="สินค้าไม่ตรงปก">สินค้าไม่ตรงปก</SelectItem>
+                      <SelectItem value="สินค้าชำรุด">สินค้าชำรุด</SelectItem>
+                      <SelectItem value="ส่งผิดสินค้า">ส่งผิดสินค้า</SelectItem>
+                      <SelectItem value="ลูกค้าปฏิเสธรับ">ลูกค้าปฏิเสธรับ</SelectItem>
+                      <SelectItem value="ที่อยู่ไม่ถูกต้อง">ที่อยู่ไม่ถูกต้อง</SelectItem>
+                      <SelectItem value="สินค้าเสียหายระหว่างขนส่ง">สินค้าเสียหายระหว่างขนส่ง</SelectItem>
+                      <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
 
@@ -426,7 +457,7 @@ export default function ReturnsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(productReturn.id)}
+                            onClick={() => setDeleteId(productReturn.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -440,6 +471,15 @@ export default function ReturnsPage() {
           )}
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="ลบรายการตีกลับ"
+        description="คุณต้องการลบรายการตีกลับนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้"
+        loading={deleteLoading}
+      />
     </div>
   )
 }

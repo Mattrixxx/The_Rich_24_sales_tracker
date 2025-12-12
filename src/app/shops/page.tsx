@@ -4,7 +4,13 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -14,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Store, Plus, Edit, Trash2, Loader2, Save, X, AlertCircle } from "lucide-react"
+import { Store, Plus, Edit, Trash2, Loader2, Save, X, AlertCircle, Globe } from "lucide-react"
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
 
 interface Platform {
   id: number
@@ -39,6 +46,8 @@ export default function ShopsPage() {
   const [editName, setEditName] = useState("")
   const [editPlatformId, setEditPlatformId] = useState("")
   const [error, setError] = useState("")
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const fetchData = async () => {
     const [shopsRes, platformsRes] = await Promise.all([
@@ -104,10 +113,13 @@ export default function ShopsPage() {
     fetchData()
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("ต้องการลบร้านค้านี้?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleteLoading(true)
 
-    await fetch(`/api/shops/${id}`, { method: "DELETE" })
+    await fetch(`/api/shops/${deleteId}`, { method: "DELETE" })
+    setDeleteId(null)
+    setDeleteLoading(false)
     fetchData()
   }
 
@@ -152,19 +164,25 @@ export default function ShopsPage() {
           )}
           <form onSubmit={handleSubmit} className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             <div>
-              <Label htmlFor="platform">แพลตฟอร์ม</Label>
+              <Label htmlFor="platform" className="flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                แพลตฟอร์ม
+              </Label>
               <Select
-                id="platform"
                 value={platformId}
-                onChange={(e) => setPlatformId(e.target.value)}
+                onValueChange={setPlatformId}
                 required
               >
-                <option value="">เลือกแพลตฟอร์ม</option>
-                {platforms.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="เลือกแพลตฟอร์ม" />
+                </SelectTrigger>
+                <SelectContent>
+                  {platforms.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
@@ -250,7 +268,7 @@ export default function ShopsPage() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(shop.id)}
+                            onClick={() => setDeleteId(shop.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -320,7 +338,7 @@ export default function ShopsPage() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(shop.id)}
+                          onClick={() => setDeleteId(shop.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -341,6 +359,15 @@ export default function ShopsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="ลบร้านค้า"
+        description="คุณต้องการลบร้านค้านี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้"
+        loading={deleteLoading}
+      />
     </div>
   )
 }

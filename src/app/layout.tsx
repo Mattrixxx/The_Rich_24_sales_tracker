@@ -1,9 +1,12 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Niramit } from "next/font/google"
 import "./globals.css"
 import { Sidebar } from "@/components/sidebar"
 
-const inter = Inter({ subsets: ["latin"] })
+const niramit = Niramit({ 
+  weight: ["200", "300", "400", "500", "600", "700"],
+  subsets: ["latin", "thai"],
+})
 
 export const metadata: Metadata = {
   title: "The Rich24 Sales Tracker",
@@ -17,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th">
-      <body className={inter.className}>
+      <body className={niramit.className}>
         <div className="flex h-screen">
           <Sidebar />
           <main className="flex-1 overflow-y-auto p-8 bg-gray-50">
