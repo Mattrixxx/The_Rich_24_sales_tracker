@@ -33,15 +33,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     
-    // Get employee for commission calculation
-    const employee = await prisma.employee.findUnique({
-      where: { id: parseInt(body.employeeId) },
-    })
-
-    if (!employee) {
-      return NextResponse.json({ error: "ไม่พบพนักงาน" }, { status: 400 })
-    }
-
     // Get all products in the order
     const items: OrderItemInput[] = body.items || []
     if (items.length === 0) {
@@ -49,9 +40,20 @@ export async function POST(request: Request) {
     }
 
     const productIds = items.map((item) => parseInt(item.productId.toString()))
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-    })
+    
+    // รวม query employee และ products ไว้ด้วยกันเพื่อลดการใช้ connection
+    const [employee, products] = await Promise.all([
+      prisma.employee.findUnique({
+        where: { id: parseInt(body.employeeId) },
+      }),
+      prisma.product.findMany({
+        where: { id: { in: productIds } },
+      })
+    ])
+
+    if (!employee) {
+      return NextResponse.json({ error: "ไม่พบพนักงาน" }, { status: 400 })
+    }
 
     // Check stock for all products
     for (const item of items) {
