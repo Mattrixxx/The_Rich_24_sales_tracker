@@ -47,20 +47,10 @@ export async function GET(request: Request) {
       }
     } : {}
 
-    const [
-      orders,
-      expenses,
-      totalProducts,
-      totalEmployees,
-      recentOrders,
-      expensesByCategory,
-      ordersByPlatform,
-      ordersByEmployee,
-      adCostsByPlatform,
-      ordersByShop,
-      adCostsByShop,
-      productReturns,
-    ] = await Promise.all([
+    // ลด connection usage โดยแบ่ง queries เป็นกลุ่มเล็ก ๆ แทนที่จะทำพร้อมกัน 12 ตัว
+    
+    // Batch 1: Core data (4 queries)
+    const [orders, expenses, totalProducts, totalEmployees] = await Promise.all([
       prisma.order.findMany({
         where: dateFilter,
         include: { 
@@ -76,17 +66,10 @@ export async function GET(request: Request) {
       }),
       prisma.product.count(),
       prisma.employee.count(),
-      prisma.order.findMany({
-        where: dateFilter,
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: { 
-          employee: true, 
-          platform: true,
-          shop: true,
-          items: { include: { product: true } },
-        },
-      }),
+    ])
+
+    // Batch 2: Aggregations (3 queries)
+    const [expensesByCategory, ordersByPlatform, ordersByEmployee] = await Promise.all([
       prisma.expense.groupBy({
         by: ["category"],
         where: { ...expenseDateFilter, isAdCost: false },
@@ -105,28 +88,43 @@ export async function GET(request: Request) {
         _sum: { totalPrice: true, commission: true },
         _count: true,
       }),
-      // Ad costs grouped by platform
+    ])
+
+    // Batch 3: Shop & Ad data (3 queries)
+    const [adCostsByPlatform, ordersByShop, adCostsByShop] = await Promise.all([
       prisma.expense.groupBy({
         by: ["platformId"],
         where: { ...expenseDateFilter, isAdCost: true },
         _sum: { amount: true },
         _count: true,
       }),
-      // Orders grouped by shop
       prisma.order.groupBy({
         by: ["shopId"],
         where: { ...dateFilter, shopId: { not: null } },
         _sum: { totalPrice: true },
         _count: true,
       }),
-      // Ad costs grouped by shop
       prisma.expense.groupBy({
         by: ["shopId"],
         where: { ...expenseDateFilter, isAdCost: true, shopId: { not: null } },
         _sum: { amount: true },
         _count: true,
       }),
-      // Product returns
+    ])
+
+    // Batch 4: Recent data (2 queries)
+    const [recentOrders, productReturns] = await Promise.all([
+      prisma.order.findMany({
+        where: dateFilter,
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: { 
+          employee: true, 
+          platform: true,
+          shop: true,
+          items: { include: { product: true } },
+        },
+      }),
       prisma.productReturn.findMany({
         where: dateFilter,
         include: { product: true },
