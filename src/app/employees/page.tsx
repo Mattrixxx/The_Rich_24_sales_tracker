@@ -4,6 +4,13 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -16,23 +23,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Users, Plus, Trash2, Loader2, Percent, UserPlus } from "lucide-react"
+import { Users, Plus, Trash2, Loader2, Percent, UserPlus, Edit2 } from "lucide-react"
 
 interface Employee {
   id: number
   name: string
   commissionRate: number
+  commissionType: string
+  commissionValue: number
   createdAt: string
 }
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [name, setName] = useState("")
-  const [commissionRate, setCommissionRate] = useState("5")
+  const [commissionType, setCommissionType] = useState("percentage")
+  const [commissionValue, setCommissionValue] = useState("5")
   const [loading, setLoading] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const fetchEmployees = async () => {
     const res = await fetch("/api/employees")
@@ -45,18 +56,41 @@ export default function EmployeesPage() {
     fetchEmployees()
   }, [])
 
+  const handleEdit = (employee: Employee) => {
+    setEditingId(employee.id)
+    setName(employee.name)
+    setCommissionType(employee.commissionType || "percentage")
+    const value = employee.commissionType === "percentage" 
+      ? (employee.commissionValue ?? employee.commissionRate) * 100
+      : (employee.commissionValue ?? employee.commissionRate * 100)
+    setCommissionValue(value.toString())
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setName("")
+    setCommissionType("percentage")
+    setCommissionValue("5")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    await fetch("/api/employees", {
-      method: "POST",
+    const url = editingId ? `/api/employees/${editingId}` : "/api/employees"
+    const method = editingId ? "PUT" : "POST"
+
+    await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, commissionRate }),
+      body: JSON.stringify({ name, commissionType, commissionValue }),
     })
 
     setName("")
-    setCommissionRate("5")
+    setCommissionType("percentage")
+    setCommissionValue("5")
+    setEditingId(null)
     setLoading(false)
     fetchEmployees()
   }
@@ -100,13 +134,25 @@ export default function EmployeesPage() {
 
       <Card className="border-dashed border-2">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <UserPlus className="h-5 w-5" />
-            เพิ่มพนักงานใหม่
+          <CardTitle className="flex items-center justify-between text-base md:text-lg">
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              {editingId ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานใหม่"}
+            </div>
+            {editingId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+              >
+                ยกเลิก
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 sm:items-end">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex-1">
               <Label htmlFor="name">ชื่อพนักงาน</Label>
               <Input
@@ -117,33 +163,65 @@ export default function EmployeesPage() {
                 required
               />
             </div>
-            <div className="w-full sm:w-40">
-              <Label htmlFor="commissionRate" className="flex items-center gap-1">
-                <Percent className="h-3 w-3" />
-                ค่าคอมมิชชั่น (%)
-              </Label>
-              <Input
-                id="commissionRate"
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                value={commissionRate}
-                onChange={(e) => setCommissionRate(e.target.value)}
-                placeholder="5"
-                required
-              />
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="commissionType">ประเภทค่าคอม</Label>
+                <Select value={commissionType} onValueChange={setCommissionType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">คิดตามเปอร์เซ็นต์ (%)</SelectItem>
+                    <SelectItem value="fixed">จำนวนเงินคงที่ (บาท)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="commissionValue" className="flex items-center gap-1">
+                  {commissionType === "percentage" ? (
+                    <>
+                      <Percent className="h-3 w-3" />
+                      ค่าคอมมิชชั่น (%)
+                    </>
+                  ) : (
+                    "ค่าคอมมิชชั่น (บาท)"
+                  )}
+                </Label>
+                <Input
+                  id="commissionValue"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max={commissionType === "percentage" ? "100" : undefined}
+                  value={commissionValue}
+                  onChange={(e) => setCommissionValue(e.target.value)}
+                  placeholder={commissionType === "percentage" ? "5" : "50"}
+                  required
+                />
+              </div>
             </div>
-            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+            
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  กำลังบันทึก...
+                  {editingId ? "กำลังอัปเดต..." : "กำลังบันทึก..."}
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  เพิ่มพนักงาน
+                  {editingId ? (
+                    <>
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      อัปเดตข้อมูล
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      เพิ่มพนักงาน
+                    </>
+                  )}
                 </>
               )}
             </Button>
@@ -185,20 +263,42 @@ export default function EmployeesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className="gap-1">
-                        <Percent className="h-3 w-3" />
-                        {(employee.commissionRate * 100).toFixed(1)}%
+                        {employee.commissionType === "percentage" ? (
+                          <>
+                            <Percent className="h-3 w-3" />
+                            {((employee.commissionValue ?? employee.commissionRate) * 100).toFixed(1)}%
+                          </>
+                        ) : employee.commissionType === "fixed" ? (
+                          <>฿{(employee.commissionValue ?? 0).toFixed(0)}/ออเดอร์</>
+                        ) : (
+                          <>
+                            <Percent className="h-3 w-3" />
+                            {(employee.commissionRate * 100).toFixed(1)}%
+                          </>
+                        )}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteId(employee.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-1">ลบ</span>
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleEdit(employee)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-1">แก้ไข</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteId(employee.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-1">ลบ</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

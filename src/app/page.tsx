@@ -38,6 +38,7 @@ import {
   Globe,
   Store,
   Loader2,
+  Percent,
 } from "lucide-react"
 
 interface OrderItem {
@@ -49,6 +50,7 @@ interface OrderItem {
 interface DashboardData {
   totalOrders: number
   totalRevenue: number
+  totalCost: number
   totalExpenses: number
   totalAdCosts: number
   totalOtherExpenses: number
@@ -79,6 +81,8 @@ interface DashboardData {
     revenue: number
     commission: number
     count: number
+    commissionType: string
+    commissionValue: number
   }>
   adCostsByPlatform: Array<{
     platform: string
@@ -147,6 +151,8 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [filterType, setFilterType] = useState("all")
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date())
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date())
+  const [endDate, setEndDate] = useState<Date | undefined>(new Date())
   const [loading, setLoading] = useState(true)
 
   // Helper function to format date without timezone issues
@@ -160,8 +166,18 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const dateStr = filterDate ? formatDateLocal(filterDate) : formatDateLocal(new Date())
-      const res = await fetch(`/api/dashboard?filterType=${filterType}&filterDate=${dateStr}`)
+      let url = `/api/dashboard?filterType=${filterType}`
+      
+      if (filterType === "range") {
+        const start = startDate ? formatDateLocal(startDate) : formatDateLocal(new Date())
+        const end = endDate ? formatDateLocal(endDate) : formatDateLocal(new Date())
+        url += `&startDate=${start}&endDate=${end}`
+      } else {
+        const dateStr = filterDate ? formatDateLocal(filterDate) : formatDateLocal(new Date())
+        url += `&filterDate=${dateStr}`
+      }
+      
+      const res = await fetch(url)
       const json = await res.json()
       setData(json)
     } catch (error) {
@@ -172,10 +188,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData()
-  }, [filterType, filterDate])
+  }, [filterType, filterDate, startDate, endDate])
 
   const getFilterLabel = () => {
     if (filterType === "all") return "ทั้งหมด"
+    if (filterType === "range") {
+      const start = startDate?.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })
+      const end = endDate?.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })
+      return `${start} - ${end}`
+    }
     if (!filterDate) return ""
     switch (filterType) {
       case "day":
@@ -215,39 +236,65 @@ export default function Dashboard() {
               <SelectContent>
                 <SelectItem value="all">ทั้งหมด</SelectItem>
                 <SelectItem value="day">รายวัน</SelectItem>
+                <SelectItem value="range">ช่วงวัน</SelectItem>
                 <SelectItem value="month">รายเดือน</SelectItem>
                 <SelectItem value="year">รายปี</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {filterType !== "all" && (
-            <div className="space-y-1.5">
-              <Label className="flex items-center text-sm">
-                {filterType === "day" ? "วันที่" : filterType === "month" ? "เดือน" : "ปี"}
-              </Label>
-              {filterType === "day" ? (
-                <DatePicker
-                  date={filterDate}
-                  onDateChange={setFilterDate}
-                  placeholder="เลือกวันที่"
-                  className="w-full sm:w-52"
-                />
-              ) : filterType === "month" ? (
-                <MonthPicker
-                  date={filterDate}
-                  onDateChange={setFilterDate}
-                  placeholder="เลือกเดือน"
-                  className="w-full sm:w-52"
-                />
+            <>
+              {filterType === "range" ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center text-sm">วันที่เริ่มต้น</Label>
+                    <DatePicker
+                      date={startDate}
+                      onDateChange={setStartDate}
+                      placeholder="เลือกวันที่เริ่มต้น"
+                      className="w-full sm:w-52"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center text-sm">วันที่สิ้นสุด</Label>
+                    <DatePicker
+                      date={endDate}
+                      onDateChange={setEndDate}
+                      placeholder="เลือกวันที่สิ้นสุด"
+                      className="w-full sm:w-52"
+                    />
+                  </div>
+                </>
               ) : (
-                <YearPicker
-                  date={filterDate}
-                  onDateChange={setFilterDate}
-                  placeholder="เลือกปี"
-                  className="w-full sm:w-40"
-                />
+                <div className="space-y-1.5">
+                  <Label className="flex items-center text-sm">
+                    {filterType === "day" ? "วันที่" : filterType === "month" ? "เดือน" : "ปี"}
+                  </Label>
+                  {filterType === "day" ? (
+                    <DatePicker
+                      date={filterDate}
+                      onDateChange={setFilterDate}
+                      placeholder="เลือกวันที่"
+                      className="w-full sm:w-52"
+                    />
+                  ) : filterType === "month" ? (
+                    <MonthPicker
+                      date={filterDate}
+                      onDateChange={setFilterDate}
+                      placeholder="เลือกเดือน"
+                      className="w-full sm:w-52"
+                    />
+                  ) : (
+                    <YearPicker
+                      date={filterDate}
+                      onDateChange={setFilterDate}
+                      placeholder="เลือกปี"
+                      className="w-full sm:w-40"
+                    />
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -260,7 +307,7 @@ export default function Dashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">ยอดขายรวม</CardTitle>
@@ -366,7 +413,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4 mb-4">
+            <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-4 mb-4">
               <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                 <div className="text-xl md:text-2xl font-bold text-orange-600">{data.totalReturns}</div>
                 <div className="text-xs md:text-sm text-muted-foreground">รายการตีกลับ</div>
@@ -688,7 +735,14 @@ export default function Dashboard() {
                         ฿{emp.revenue.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-blue-600 hidden sm:table-cell">
-                        ฿{emp.commission.toLocaleString()}
+                        {emp.commissionType === "fixed" ? (
+                          <span>฿{emp.commission.toLocaleString()} (฿{emp.commissionValue.toFixed(0)}/ออเดอร์)</span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <Percent className="h-3 w-3" />
+                            <span>฿{emp.commission.toLocaleString()} ({(emp.commissionValue * 100).toFixed(1)}%)</span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {((emp.revenue / data.totalRevenue) * 100).toFixed(1)}%

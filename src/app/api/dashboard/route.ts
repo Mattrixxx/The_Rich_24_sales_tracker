@@ -8,29 +8,39 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const filterType = searchParams.get("filterType") || "all"
     const filterDate = searchParams.get("filterDate") || new Date().toISOString().split("T")[0]
+    const startDateParam = searchParams.get("startDate")
+    const endDateParam = searchParams.get("endDate")
 
     let startDate: Date
     let endDate: Date
 
-    const now = new Date(filterDate)
+    if (filterType === "range" && startDateParam && endDateParam) {
+      // ช่วงวัน
+      const start = new Date(startDateParam)
+      const end = new Date(endDateParam)
+      startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0)
+      endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59)
+    } else {
+      const now = new Date(filterDate)
 
-    switch (filterType) {
-      case "day":
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
-        break
-      case "month":
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
-        break
-      case "year":
-        startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0)
-        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59)
-        break
-      default:
-        // All time - use very wide range
-        startDate = new Date(2000, 0, 1)
-        endDate = new Date(2100, 11, 31)
+      switch (filterType) {
+        case "day":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+          break
+        case "month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+          break
+        case "year":
+          startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0)
+          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59)
+          break
+        default:
+          // All time - use very wide range
+          startDate = new Date(2000, 0, 1)
+          endDate = new Date(2100, 11, 31)
+      }
     }
 
     const dateFilter = filterType !== "all" ? {
@@ -144,8 +154,31 @@ export async function GET(request: Request) {
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
     const totalAdCosts = expenses.filter(e => e.isAdCost).reduce((sum, e) => sum + e.amount, 0)
     const totalOtherExpenses = totalExpenses - totalAdCosts
-    const totalCommission = orders.reduce((sum, o) => sum + o.commission, 0)
+    
+    // คำนวณค่าคอมรวมตามประเภทพนักงานปัจจุบัน
+    const totalCommission = ordersByEmployee.reduce((sum, o) => {
+      const employee = employees.find(e => e.id === o.employeeId)
+      if (!employee) return sum
+      
+      const commissionType = (employee as any)?.commissionType || "percentage"
+      const commissionValue = (employee as any)?.commissionValue ?? employee?.commissionRate ?? 0
+      
+      const commission = commissionType === "fixed" 
+        ? o._count * commissionValue
+        : (o._sum.commission || 0)
+      
+      return sum + commission
+    }, 0)
+    
     const totalOrders = orders.length
+    
+    // Calculate total product cost from orders
+    const totalCost = orders.reduce((sum, order) => {
+      const orderCost = order.items.reduce((itemSum, item) => {
+        return itemSum + (item.product.cost * item.quantity)
+      }, 0)
+      return sum + orderCost
+    }, 0)
 
     // Calculate returns data
     const totalReturns = productReturns.length
@@ -210,13 +243,14 @@ export async function GET(request: Request) {
     return NextResponse.json({
       totalOrders,
       totalRevenue,
+      totalCost,
       totalExpenses,
       totalAdCosts,
       totalOtherExpenses,
       totalCommission,
       totalProducts,
       totalEmployees,
-      profit: totalRevenue - totalExpenses,
+      profit: totalRevenue - totalCost - totalExpenses,
       recentOrders,
       expensesByCategory: expensesByCategory.map(e => ({
         category: e.category,
@@ -228,12 +262,36 @@ export async function GET(request: Request) {
         revenue: o._sum.totalPrice || 0,
         count: o._count,
       })),
-      ordersByEmployee: ordersByEmployee.map(o => ({
-        employee: employeeMap[o.employeeId] || "Unknown",
-        revenue: o._sum.totalPrice || 0,
-        commission: o._sum.commission || 0,
-        count: o._count,
-      })),
+      ordersByEmployee: ordersByEmployee.map(o => {
+        const employee = employees.find(e => e.id === o.employeeId)
+        if (!employee) {
+          return {
+            employee: "Unknown",
+            revenue: o._sum.totalPrice || 0,
+            commission: 0,
+            count: o._count,
+            commissionType: 'fixed',
+            commissionValue: 0
+          }
+        }
+        
+        const commissionType = (employee as any)?.commissionType || "percentage"
+        const commissionValue = (employee as any)?.commissionValue ?? employee?.commissionRate ?? 0
+        
+        // คำนวณค่าคอมจริงๆ ตามประเภทปัจจุบัน
+        const actualCommission = commissionType === "fixed" 
+          ? o._count * commissionValue  // fixed: จำนวนออเดอร์ × ค่าคอมต่อออเดอร์
+          : (o._sum.commission || 0)     // percentage: ใช้ค่าที่บันทึกไว้
+        
+        return {
+          employee: employeeMap[o.employeeId] || "Unknown",
+          revenue: o._sum.totalPrice || 0,
+          commission: actualCommission,
+          count: o._count,
+          commissionType,
+          commissionValue,
+        }
+      }),
       adCostsByPlatform: adCostsByPlatform.map(a => ({
         platform: platformMap[a.platformId || 0] || "ไม่ระบุ",
         amount: a._sum.amount || 0,

@@ -32,12 +32,14 @@ model StockIn {
 }
 
 model Employee {
-  id             Int      @id @default(autoincrement())
-  name           String
-  commissionRate Float    @default(0.05) // 5% default commission
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  orders         Order[]
+  id              Int      @id @default(autoincrement())
+  name            String
+  commissionRate  Float    @default(0.05) // Keep for backward compatibility
+  commissionType  String   @default("percentage") // "percentage" or "fixed"
+  commissionValue Float    @default(0.05) // 0.05 for 5% or fixed amount
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orders          Order[]
 }
 
 model Platform {

@@ -72,7 +72,12 @@ export async function POST(request: Request) {
     }
 
     const totalPrice = parseFloat(body.totalPrice)
-    const commission = totalPrice * employee.commissionRate
+    // Calculate commission based on type (with backward compatibility)
+    const commission = (employee as any).commissionType === "percentage" 
+      ? totalPrice * ((employee as any).commissionValue ?? employee.commissionRate)
+      : (employee as any).commissionType === "fixed"
+      ? (employee as any).commissionValue
+      : totalPrice * employee.commissionRate
 
     // Create order with items and deduct stock in a transaction
     const order = await prisma.$transaction(async (tx) => {

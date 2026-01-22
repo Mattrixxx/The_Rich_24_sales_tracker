@@ -21,11 +21,19 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
+    const commissionType = body.commissionType || "percentage"
+    const commissionValue = parseFloat(body.commissionValue)
+    
+    // Convert percentage to decimal (e.g., 5 -> 0.05), keep fixed amount as is
+    const finalValue = commissionType === "percentage" ? commissionValue / 100 : commissionValue
+    
     const employee = await prisma.employee.update({
       where: { id: parseInt(params.id) },
       data: {
         name: body.name,
-        commissionRate: parseFloat(body.commissionRate) / 100,
+        commissionType,
+        commissionValue: finalValue,
+        commissionRate: commissionType === "percentage" ? finalValue : 0.05, // backward compatibility
       },
     })
     return NextResponse.json(employee)

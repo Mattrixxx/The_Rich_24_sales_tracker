@@ -1,20 +1,26 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -22,125 +28,149 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { ShoppingCart, Plus, Minus, Trash2, TrendingUp, DollarSign, Loader2, AlertCircle, Package, Users, Globe, Store, FileText, Calendar } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
+} from "@/components/ui/table";
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  TrendingUp,
+  DollarSign,
+  Loader2,
+  AlertCircle,
+  Package,
+  Users,
+  Globe,
+  Store,
+  FileText,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface Product {
-  id: number
-  name: string
-  price: number
-  stock: number
+  id: number;
+  name: string;
+  price: number;
+  stock: number;
 }
 
 interface Employee {
-  id: number
-  name: string
-  commissionRate: number
+  id: number;
+  name: string;
+  commissionRate: number;
 }
 
 interface Platform {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
 interface Shop {
-  id: number
-  name: string
-  platform: Platform
+  id: number;
+  name: string;
+  platform: Platform;
 }
 
 interface OrderItem {
-  id: number
-  product: Product
-  quantity: number
-  unitPrice: number
-  subtotal: number
+  id: number;
+  product: Product;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
 }
 
 interface Order {
-  id: number
-  employee: Employee
-  platform: Platform
-  shop: Shop | null
-  items: OrderItem[]
-  totalPrice: number
-  commission: number
-  note: string | null
-  createdAt: string
+  id: number;
+  employee: Employee;
+  platform: Platform;
+  shop: Shop | null;
+  items: OrderItem[];
+  totalPrice: number;
+  commission: number;
+  note: string | null;
+  createdAt: string;
 }
 
 interface CartItem {
-  productId: string
-  productName: string
-  quantity: number
-  stock: number
+  productId: string;
+  productName: string;
+  quantity: number;
+  stock: number;
 }
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [platforms, setPlatforms] = useState<Platform[]>([])
-  const [shops, setShops] = useState<Shop[]>([])
-  const [pageLoading, setPageLoading] = useState(true)
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  const [employeeId, setEmployeeId] = useState("")
-  const [platformId, setPlatformId] = useState("")
-  const [shopId, setShopId] = useState("")
-  const [totalPrice, setTotalPrice] = useState("")
-  const [note, setNote] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [employeeId, setEmployeeId] = useState("");
+  const [platformId, setPlatformId] = useState("");
+  const [shopId, setShopId] = useState("");
+  const [totalPrice, setTotalPrice] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [selectedProductId, setSelectedProductId] = useState("")
-  const [selectedQuantity, setSelectedQuantity] = useState("1")
-  const [deleteId, setDeleteId] = useState<number | null>(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const [orderDate, setOrderDate] = useState<Date | undefined>(new Date())
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedQuantity, setSelectedQuantity] = useState("1");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [orderDate, setOrderDate] = useState<Date | undefined>(new Date());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
   const fetchData = async () => {
-    const [ordersRes, productsRes, employeesRes, platformsRes, shopsRes] = await Promise.all([
-      fetch("/api/orders"),
-      fetch("/api/products"),
-      fetch("/api/employees"),
-      fetch("/api/platforms"),
-      fetch("/api/shops"),
-    ])
+    const [ordersRes, productsRes, employeesRes, platformsRes, shopsRes] =
+      await Promise.all([
+        fetch("/api/orders"),
+        fetch("/api/products"),
+        fetch("/api/employees"),
+        fetch("/api/platforms"),
+        fetch("/api/shops"),
+      ]);
 
-    setOrders(await ordersRes.json())
-    setProducts(await productsRes.json())
-    setEmployees(await employeesRes.json())
-    setPlatforms(await platformsRes.json())
-    setShops(await shopsRes.json())
-    setPageLoading(false)
-  }
+    setOrders(await ordersRes.json());
+    setProducts(await productsRes.json());
+    setEmployees(await employeesRes.json());
+    setPlatforms(await platformsRes.json());
+    setShops(await shopsRes.json());
+    setPageLoading(false);
+  };
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   // Filter shops by selected platform
   const filteredShops = shops.filter(
-    (shop) => shop.platform.id === parseInt(platformId)
-  )
+    (shop) => shop.platform.id === parseInt(platformId),
+  );
 
   const addToCart = () => {
-    if (!selectedProductId || !selectedQuantity) return
+    if (!selectedProductId || !selectedQuantity) return;
 
-    const product = products.find((p) => p.id === parseInt(selectedProductId))
-    if (!product) return
+    const product = products.find((p) => p.id === parseInt(selectedProductId));
+    if (!product) return;
 
-    const quantity = parseInt(selectedQuantity)
-    if (quantity <= 0) return
+    const quantity = parseInt(selectedQuantity);
+    if (quantity <= 0) return;
 
     // Check if product already in cart
-    const existingIndex = cart.findIndex((item) => item.productId === selectedProductId)
+    const existingIndex = cart.findIndex(
+      (item) => item.productId === selectedProductId,
+    );
     if (existingIndex >= 0) {
-      const newCart = [...cart]
-      newCart[existingIndex].quantity += quantity
-      setCart(newCart)
+      const newCart = [...cart];
+      newCart[existingIndex].quantity += quantity;
+      setCart(newCart);
     } else {
       setCart([
         ...cart,
@@ -150,49 +180,86 @@ export default function OrdersPage() {
           quantity,
           stock: product.stock,
         },
-      ])
+      ]);
     }
 
-    setSelectedProductId("")
-    setSelectedQuantity("1")
-  }
+    setSelectedProductId("");
+    setSelectedQuantity("1");
+  };
 
   const removeFromCart = (productId: string) => {
-    setCart(cart.filter((item) => item.productId !== productId))
-  }
+    setCart(cart.filter((item) => item.productId !== productId));
+  };
 
   const updateCartQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId)
-      return
+      removeFromCart(productId);
+      return;
     }
     setCart(
       cart.map((item) =>
-        item.productId === productId ? { ...item, quantity: newQuantity } : item
-      )
-    )
-  }
+        item.productId === productId
+          ? { ...item, quantity: newQuantity }
+          : item,
+      ),
+    );
+  };
+
+  const handleEdit = (order: Order) => {
+    setEditingOrderId(order.id);
+    setEmployeeId(order.employee.id.toString());
+    setPlatformId(order.platform.id.toString());
+    setShopId(order.shop?.id.toString() || "");
+    setTotalPrice(order.totalPrice.toString());
+    setNote(order.note || "");
+    setOrderDate(new Date(order.createdAt));
+    setCart(
+      order.items.map((item) => ({
+        productId: item.product.id.toString(),
+        productName: item.product.name,
+        quantity: item.quantity,
+        stock: item.product.stock,
+      }))
+    );
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingOrderId(null);
+    setEmployeeId("");
+    setPlatformId("");
+    setShopId("");
+    setTotalPrice("");
+    setNote("");
+    setCart([]);
+    setOrderDate(new Date());
+    setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (cart.length === 0) {
-      setError("กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ")
-      return
+      setError("กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ");
+      return;
     }
-    
-    setLoading(true)
-    setError("")
+
+    setLoading(true);
+    setError("");
 
     // Format date without timezone issues
     const formatDateLocal = (d: Date) => {
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
 
-    const res = await fetch("/api/orders", {
-      method: "POST",
+    const url = editingOrderId ? `/api/orders/${editingOrderId}` : "/api/orders";
+    const method = editingOrderId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         employeeId,
@@ -200,53 +267,69 @@ export default function OrdersPage() {
         shopId: shopId || null,
         totalPrice,
         note,
-        orderDate: orderDate ? formatDateLocal(orderDate) : formatDateLocal(new Date()),
+        orderDate: orderDate
+          ? formatDateLocal(orderDate)
+          : formatDateLocal(new Date()),
         items: cart.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
       }),
-    })
+    });
 
-    const data = await res.json()
-    
+    const data = await res.json();
+
     if (!res.ok) {
-      setError(data.error || "เกิดข้อผิดพลาด")
-      setLoading(false)
-      return
+      setError(data.error || "เกิดข้อผิดพลาด");
+      setLoading(false);
+      return;
     }
 
     // Reset form
-    setEmployeeId("")
-    setPlatformId("")
-    setShopId("")
-    setTotalPrice("")
-    setNote("")
-    setCart([])
-    setOrderDate(new Date())
-    setLoading(false)
-    fetchData()
-  }
+    setEditingOrderId(null);
+    setEmployeeId("");
+    setPlatformId("");
+    setShopId("");
+    setTotalPrice("");
+    setNote("");
+    setCart([]);
+    setOrderDate(new Date());
+    setLoading(false);
+    fetchData();
+  };
 
   const handleDelete = async () => {
-    if (!deleteId) return
-    setDeleteLoading(true)
+    if (!deleteId) return;
+    setDeleteLoading(true);
 
-    await fetch(`/api/orders/${deleteId}`, { method: "DELETE" })
-    setDeleteId(null)
-    setDeleteLoading(false)
-    fetchData()
-  }
+    await fetch(`/api/orders/${deleteId}`, { method: "DELETE" });
+    setDeleteId(null);
+    setDeleteLoading(false);
+    fetchData();
+  };
 
-  const totalRevenue = orders.reduce((sum, o) => sum + o.totalPrice, 0)
-  const totalCommission = orders.reduce((sum, o) => sum + o.commission, 0)
+  const totalRevenue = orders.reduce((sum, o) => sum + o.totalPrice, 0);
+  const totalCommission = orders.reduce((sum, o) => sum + o.commission, 0);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(orders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentOrders = orders.slice(startIndex, endIndex);
+
+  // Reset to page 1 when orders change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [orders.length, currentPage, totalPages]);
 
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   return (
@@ -258,9 +341,21 @@ export default function OrdersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <Plus className="h-5 w-5" />
-            บันทึกออเดอร์ใหม่
+          <CardTitle className="flex items-center justify-between text-base md:text-lg">
+            <div className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              {editingOrderId ? "แก้ไขออเดอร์" : "บันทึกออเดอร์ใหม่"}
+            </div>
+            {editingOrderId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+              >
+                ยกเลิก
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -308,7 +403,12 @@ export default function OrdersPage() {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button type="button" onClick={addToCart} variant="outline" className="w-full">
+                  <Button
+                    type="button"
+                    onClick={addToCart}
+                    variant="outline"
+                    className="w-full"
+                  >
                     <Plus className="h-4 w-4 mr-1" />
                     เพิ่มสินค้า
                   </Button>
@@ -329,22 +429,36 @@ export default function OrdersPage() {
                       key={item.productId}
                       className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-2 rounded border gap-2"
                     >
-                      <span className="font-medium truncate">{item.productName}</span>
+                      <span className="font-medium truncate">
+                        {item.productName}
+                      </span>
                       <div className="flex items-center gap-2 justify-end">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
+                          onClick={() =>
+                            updateCartQuantity(
+                              item.productId,
+                              item.quantity - 1,
+                            )
+                          }
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-10 text-center">{item.quantity}</span>
+                        <span className="w-10 text-center">
+                          {item.quantity}
+                        </span>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
+                          onClick={() =>
+                            updateCartQuantity(
+                              item.productId,
+                              item.quantity + 1,
+                            )
+                          }
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -395,8 +509,8 @@ export default function OrdersPage() {
                 <Select
                   value={platformId}
                   onValueChange={(value) => {
-                    setPlatformId(value)
-                    setShopId("") // Reset shop when platform changes
+                    setPlatformId(value);
+                    setShopId(""); // Reset shop when platform changes
                   }}
                   required
                 >
@@ -435,7 +549,10 @@ export default function OrdersPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="totalPrice" className="flex items-center gap-1.5">
+                <Label
+                  htmlFor="totalPrice"
+                  className="flex items-center gap-1.5"
+                >
                   <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                   ราคารวม (บาท)
                 </Label>
@@ -450,7 +567,10 @@ export default function OrdersPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="orderDate" className="flex items-center gap-1.5">
+                <Label
+                  htmlFor="orderDate"
+                  className="flex items-center gap-1.5"
+                >
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                   วันที่
                 </Label>
@@ -462,7 +582,9 @@ export default function OrdersPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="note" className="flex items-center gap-1.5">หมายเหตุ</Label>
+                <Label htmlFor="note" className="flex items-center gap-1.5">
+                  หมายเหตุ
+                </Label>
                 <Input
                   id="note"
                   value={note}
@@ -471,16 +593,20 @@ export default function OrdersPage() {
                 />
               </div>
               <div className="flex items-end">
-                <Button type="submit" disabled={loading || cart.length === 0} className="w-full">
+                <Button
+                  type="submit"
+                  disabled={loading || cart.length === 0}
+                  className="w-full"
+                >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      กำลังบันทึก...
+                      {editingOrderId ? "กำลังอัปเดต..." : "กำลังบันทึก..."}
                     </>
                   ) : (
                     <>
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      บันทึกออเดอร์
+                      {editingOrderId ? "อัปเดตออเดอร์" : "บันทึกออเดอร์"}
                     </>
                   )}
                 </Button>
@@ -533,17 +659,27 @@ export default function OrdersPage() {
                 <TableRow>
                   <TableHead>วันที่</TableHead>
                   <TableHead>สินค้า</TableHead>
-                  <TableHead className="hidden sm:table-cell">พนักงาน</TableHead>
-                  <TableHead className="hidden md:table-cell">แพลตฟอร์ม</TableHead>
-                  <TableHead className="hidden lg:table-cell">ร้านค้า</TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    พนักงาน
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    แพลตฟอร์ม
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    ร้านค้า
+                  </TableHead>
                   <TableHead className="text-right">รวม</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">คอมมิชชั่น</TableHead>
-                  <TableHead className="hidden lg:table-cell">หมายเหตุ</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">
+                    คอมมิชชั่น
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    หมายเหตุ
+                  </TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {currentOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="text-xs sm:text-sm">
                       {new Date(order.createdAt).toLocaleDateString("th-TH")}
@@ -551,20 +687,32 @@ export default function OrdersPage() {
                     <TableCell>
                       <div className="space-y-1 max-w-[100px] sm:max-w-none">
                         {order.items.slice(0, 2).map((item) => (
-                          <div key={item.id} className="text-xs sm:text-sm truncate">
+                          <div
+                            key={item.id}
+                            className="text-xs sm:text-sm truncate"
+                          >
                             {item.product.name} x{item.quantity}
                           </div>
                         ))}
                         {order.items.length > 2 && (
-                          <div className="text-xs text-muted-foreground">
+                          <button
+                            onClick={() => setViewingOrder(order)}
+                            className="text-xs text-primary hover:underline cursor-pointer"
+                          >
                             +{order.items.length - 2} รายการ
-                          </div>
+                          </button>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">{order.employee.name}</TableCell>
-                    <TableCell className="hidden md:table-cell">{order.platform.name}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{order.shop?.name || "-"}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {order.employee.name}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {order.platform.name}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {order.shop?.name || "-"}
+                    </TableCell>
                     <TableCell className="text-right font-medium text-xs sm:text-sm">
                       ฿{order.totalPrice.toLocaleString()}
                     </TableCell>
@@ -575,20 +723,33 @@ export default function OrdersPage() {
                       {order.note || "-"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeleteId(order.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-1">ลบ</span>
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(order)}
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-1">แก้ไข</span>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeleteId(order.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-1">ลบ</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {orders.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell
+                      colSpan={9}
+                      className="text-center text-muted-foreground py-8"
+                    >
                       <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       ยังไม่มีออเดอร์
                     </TableCell>
@@ -597,6 +758,71 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
           </div>
+          {/* Pagination */}
+          {orders.length > 0 && (
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
+              <div className="text-sm text-muted-foreground">
+                แสดง {startIndex + 1}-{Math.min(endIndex, orders.length)} จาก{" "}
+                {orders.length} รายการ
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">ก่อนหน้า</span>
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((page) => {
+                      // Show first, last, current, and pages around current
+                      if (page === 1 || page === totalPages) return true;
+                      if (Math.abs(page - currentPage) <= 1) return true;
+                      return false;
+                    })
+                    .map((page, index, array) => {
+                      // Add ellipsis
+                      const prevPage = array[index - 1];
+                      const showEllipsis = prevPage && page - prevPage > 1;
+
+                      return (
+                        <div key={page} className="flex items-center gap-1">
+                          {showEllipsis && (
+                            <span className="px-2 text-muted-foreground">
+                              ...
+                            </span>
+                          )}
+                          <Button
+                            variant={
+                              currentPage === page ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="min-w-[2.5rem]"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="hidden sm:inline">ถัดไป</span>
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}{" "}
         </CardContent>
       </Card>
 
@@ -608,6 +834,89 @@ export default function OrdersPage() {
         description="คุณต้องการลบออเดอร์นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้"
         loading={deleteLoading}
       />
+
+      <Dialog open={viewingOrder !== null} onOpenChange={(open) => !open && setViewingOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              รายละเอียดออเดอร์
+            </DialogTitle>
+          </DialogHeader>
+          {viewingOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">วันที่:</span>
+                  <span className="ml-2 font-medium">
+                    {new Date(viewingOrder.createdAt).toLocaleDateString("th-TH")}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">พนักงาน:</span>
+                  <span className="ml-2 font-medium">{viewingOrder.employee.name}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">แพลตฟอร์ม:</span>
+                  <span className="ml-2 font-medium">{viewingOrder.platform.name}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">ร้านค้า:</span>
+                  <span className="ml-2 font-medium">{viewingOrder.shop?.name || "-"}</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  รายการสินค้า ({viewingOrder.items.length} รายการ)
+                </h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>สินค้า</TableHead>
+                      <TableHead className="text-right">ราคา/ชิ้น</TableHead>
+                      <TableHead className="text-right">จำนวน</TableHead>
+                      <TableHead className="text-right">รวม</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewingOrder.items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.product.name}</TableCell>
+                        <TableCell className="text-right">฿{item.unitPrice.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right font-medium">฿{item.subtotal.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-lg">
+                  <span className="font-semibold">ยอดรวมทั้งหมด:</span>
+                  <span className="font-bold text-green-600">฿{viewingOrder.totalPrice.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">คอมมิชชั่น:</span>
+                  <span className="font-medium text-blue-600">฿{viewingOrder.commission.toLocaleString()}</span>
+                </div>
+                {viewingOrder.note && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded">
+                    <span className="text-sm text-muted-foreground">หมายเหตุ: </span>
+                    <span className="text-sm">{viewingOrder.note}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
-  )
+  );
 }
