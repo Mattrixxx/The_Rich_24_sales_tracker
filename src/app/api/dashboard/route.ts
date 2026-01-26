@@ -155,20 +155,8 @@ export async function GET(request: Request) {
     const totalAdCosts = expenses.filter(e => e.isAdCost).reduce((sum, e) => sum + e.amount, 0)
     const totalOtherExpenses = totalExpenses - totalAdCosts
     
-    // คำนวณค่าคอมรวมตามประเภทพนักงานปัจจุบัน
-    const totalCommission = ordersByEmployee.reduce((sum, o) => {
-      const employee = employees.find(e => e.id === o.employeeId)
-      if (!employee) return sum
-      
-      const commissionType = (employee as any)?.commissionType || "percentage"
-      const commissionValue = (employee as any)?.commissionValue ?? employee?.commissionRate ?? 0
-      
-      const commission = commissionType === "fixed" 
-        ? o._count * commissionValue
-        : (o._sum.commission || 0)
-      
-      return sum + commission
-    }, 0)
+    // คำนวณค่าคอมรวมจากฟิลด์ commission ของทุก order โดยตรง
+    const totalCommission = orders.reduce((sum, o) => sum + (o.commission || 0), 0)
     
     const totalOrders = orders.length
     

@@ -3,22 +3,38 @@ import { prisma } from "@/lib/prisma"
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        employee: true,
-        platform: true,
-        shop: true,
-        items: {
-          include: {
-            product: true,
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          employee: true,
+          platform: true,
+          shop: true,
+          items: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-    })
-    return NextResponse.json(orders)
+      }),
+      prisma.order.count(),
+    ]);
+
+    return NextResponse.json({
+      orders,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
   }
@@ -72,12 +88,17 @@ export async function POST(request: Request) {
     }
 
     const totalPrice = parseFloat(body.totalPrice)
-    // Calculate commission based on type (with backward compatibility)
-    const commission = (employee as any).commissionType === "percentage" 
-      ? totalPrice * ((employee as any).commissionValue ?? employee.commissionRate)
-      : (employee as any).commissionType === "fixed"
-      ? (employee as any).commissionValue
-      : totalPrice * employee.commissionRate
+    // Commission: 50 THB per order if isWholesale, else normal logic
+    let commission = 0;
+    if (body.isWholesale) {
+      commission = 50;
+    } else {
+      commission = (employee as any).commissionType === "percentage" 
+        ? totalPrice * ((employee as any).commissionValue ?? employee.commissionRate)
+        : (employee as any).commissionType === "fixed"
+        ? (employee as any).commissionValue
+        : totalPrice * employee.commissionRate;
+    }
 
     // Create order with items and deduct stock in a transaction
     const order = await prisma.$transaction(async (tx) => {

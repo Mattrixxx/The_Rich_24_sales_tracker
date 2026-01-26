@@ -102,6 +102,11 @@ interface CartItem {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // Default page size
+  const [isWholesale, setIsWholesale] = useState(false); // For form only
   const [products, setProducts] = useState<Product[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -122,22 +127,25 @@ export default function OrdersPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [orderDate, setOrderDate] = useState<Date | undefined>(new Date());
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
   const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
+    setPageLoading(true);
     const [ordersRes, productsRes, employeesRes, platformsRes, shopsRes] =
       await Promise.all([
-        fetch("/api/orders"),
+        fetch(`/api/orders?page=${page}&limit=${itemsPerPage}`),
         fetch("/api/products"),
         fetch("/api/employees"),
         fetch("/api/platforms"),
         fetch("/api/shops"),
       ]);
 
-    setOrders(await ordersRes.json());
+    const ordersJson = await ordersRes.json();
+    setOrders(ordersJson.orders || []);
+    setTotalOrders(ordersJson.total || 0);
+    setTotalPages(ordersJson.totalPages || 1);
+    setCurrentPage(ordersJson.page || 1);
     setProducts(await productsRes.json());
     setEmployees(await employeesRes.json());
     setPlatforms(await platformsRes.json());
@@ -146,7 +154,7 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
   }, []);
 
   // Filter shops by selected platform
@@ -219,8 +227,9 @@ export default function OrdersPage() {
         productName: item.product.name,
         quantity: item.quantity,
         stock: item.product.stock,
-      }))
+      })),
     );
+    setIsWholesale(false); // No isWholesale in DB, reset to false
     // Scroll to form
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -234,6 +243,7 @@ export default function OrdersPage() {
     setNote("");
     setCart([]);
     setOrderDate(new Date());
+    setIsWholesale(false);
     setError("");
   };
 
@@ -255,7 +265,9 @@ export default function OrdersPage() {
       return `${year}-${month}-${day}`;
     };
 
-    const url = editingOrderId ? `/api/orders/${editingOrderId}` : "/api/orders";
+    const url = editingOrderId
+      ? `/api/orders/${editingOrderId}`
+      : "/api/orders";
     const method = editingOrderId ? "PUT" : "POST";
 
     const res = await fetch(url, {
@@ -274,6 +286,7 @@ export default function OrdersPage() {
           productId: item.productId,
           quantity: item.quantity,
         })),
+        isWholesale,
       }),
     });
 
@@ -294,6 +307,7 @@ export default function OrdersPage() {
     setNote("");
     setCart([]);
     setOrderDate(new Date());
+    setIsWholesale(false);
     setLoading(false);
     fetchData();
   };
@@ -310,12 +324,6 @@ export default function OrdersPage() {
 
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalPrice, 0);
   const totalCommission = orders.reduce((sum, o) => sum + o.commission, 0);
-
-  // Pagination calculations
-  const totalPages = Math.ceil(orders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentOrders = orders.slice(startIndex, endIndex);
 
   // Reset to page 1 when orders change
   useEffect(() => {
@@ -592,6 +600,21 @@ export default function OrdersPage() {
                   placeholder="หมายเหตุ (ถ้ามี)"
                 />
               </div>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  id="isWholesale"
+                  type="checkbox"
+                  checked={isWholesale}
+                  onChange={(e) => setIsWholesale(e.target.checked)}
+                  className="accent-blue-600 h-4 w-4"
+                />
+                <label
+                  htmlFor="isWholesale"
+                  className="cursor-pointer select-none"
+                >
+                  ราคาส่ง
+                </label>
+              </div>
               <div className="flex items-end">
                 <Button
                   type="submit"
@@ -679,7 +702,7 @@ export default function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentOrders.map((order) => (
+                {orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="text-xs sm:text-sm">
                       {new Date(order.createdAt).toLocaleDateString("th-TH")}
@@ -758,37 +781,31 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
           </div>
-          {/* Pagination */}
           {orders.length > 0 && (
             <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
               <div className="text-sm text-muted-foreground">
-                แสดง {startIndex + 1}-{Math.min(endIndex, orders.length)} จาก{" "}
-                {orders.length} รายการ
+                แสดง {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalOrders)} จาก {totalOrders} รายการ
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
+                  onClick={() => fetchData(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">ก่อนหน้า</span>
                 </Button>
-
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter((page) => {
-                      // Show first, last, current, and pages around current
                       if (page === 1 || page === totalPages) return true;
                       if (Math.abs(page - currentPage) <= 1) return true;
                       return false;
                     })
                     .map((page, index, array) => {
-                      // Add ellipsis
                       const prevPage = array[index - 1];
                       const showEllipsis = prevPage && page - prevPage > 1;
-
                       return (
                         <div key={page} className="flex items-center gap-1">
                           {showEllipsis && (
@@ -797,11 +814,9 @@ export default function OrdersPage() {
                             </span>
                           )}
                           <Button
-                            variant={
-                              currentPage === page ? "default" : "outline"
-                            }
+                            variant={currentPage === page ? "default" : "outline"}
                             size="sm"
-                            onClick={() => setCurrentPage(page)}
+                            onClick={() => fetchData(page)}
                             className="min-w-[2.5rem]"
                           >
                             {page}
@@ -810,11 +825,10 @@ export default function OrdersPage() {
                       );
                     })}
                 </div>
-
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
+                  onClick={() => fetchData(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
                   <span className="hidden sm:inline">ถัดไป</span>
@@ -822,7 +836,7 @@ export default function OrdersPage() {
                 </Button>
               </div>
             </div>
-          )}{" "}
+          )}
         </CardContent>
       </Card>
 
@@ -835,7 +849,10 @@ export default function OrdersPage() {
         loading={deleteLoading}
       />
 
-      <Dialog open={viewingOrder !== null} onOpenChange={(open) => !open && setViewingOrder(null)}>
+      <Dialog
+        open={viewingOrder !== null}
+        onOpenChange={(open) => !open && setViewingOrder(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -849,20 +866,28 @@ export default function OrdersPage() {
                 <div>
                   <span className="text-muted-foreground">วันที่:</span>
                   <span className="ml-2 font-medium">
-                    {new Date(viewingOrder.createdAt).toLocaleDateString("th-TH")}
+                    {new Date(viewingOrder.createdAt).toLocaleDateString(
+                      "th-TH",
+                    )}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">พนักงาน:</span>
-                  <span className="ml-2 font-medium">{viewingOrder.employee.name}</span>
+                  <span className="ml-2 font-medium">
+                    {viewingOrder.employee.name}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">แพลตฟอร์ม:</span>
-                  <span className="ml-2 font-medium">{viewingOrder.platform.name}</span>
+                  <span className="ml-2 font-medium">
+                    {viewingOrder.platform.name}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">ร้านค้า:</span>
-                  <span className="ml-2 font-medium">{viewingOrder.shop?.name || "-"}</span>
+                  <span className="ml-2 font-medium">
+                    {viewingOrder.shop?.name || "-"}
+                  </span>
                 </div>
               </div>
 
@@ -885,10 +910,18 @@ export default function OrdersPage() {
                   <TableBody>
                     {viewingOrder.items.map((item) => (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.product.name}</TableCell>
-                        <TableCell className="text-right">฿{item.unitPrice.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-medium">฿{item.subtotal.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium">
+                          {item.product.name}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ฿{item.unitPrice.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.quantity}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ฿{item.subtotal.toLocaleString()}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -900,15 +933,21 @@ export default function OrdersPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-lg">
                   <span className="font-semibold">ยอดรวมทั้งหมด:</span>
-                  <span className="font-bold text-green-600">฿{viewingOrder.totalPrice.toLocaleString()}</span>
+                  <span className="font-bold text-green-600">
+                    ฿{viewingOrder.totalPrice.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">คอมมิชชั่น:</span>
-                  <span className="font-medium text-blue-600">฿{viewingOrder.commission.toLocaleString()}</span>
+                  <span className="font-medium text-blue-600">
+                    ฿{viewingOrder.commission.toLocaleString()}
+                  </span>
                 </div>
                 {viewingOrder.note && (
                   <div className="mt-3 p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-muted-foreground">หมายเหตุ: </span>
+                    <span className="text-sm text-muted-foreground">
+                      หมายเหตุ:{" "}
+                    </span>
                     <span className="text-sm">{viewingOrder.note}</span>
                   </div>
                 )}

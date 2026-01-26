@@ -739,7 +739,6 @@ export default function Dashboard() {
                           <span>฿{emp.commission.toLocaleString()} (฿{emp.commissionValue.toFixed(0)}/ออเดอร์)</span>
                         ) : (
                           <div className="flex items-center justify-end gap-1">
-                            <Percent className="h-3 w-3" />
                             <span>฿{emp.commission.toLocaleString()} ({(emp.commissionValue * 100).toFixed(1)}%)</span>
                           </div>
                         )}
