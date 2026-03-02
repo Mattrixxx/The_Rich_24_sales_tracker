@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export async function DELETE(
   request: Request,
@@ -21,12 +22,14 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
+    const userId = await getCurrentUserId()
     const product = await prisma.product.update({
       where: { id: parseInt(params.id) },
       data: {
         name: body.name,
         cost: parseFloat(body.cost),
         price: parseFloat(body.price),
+        updatedById: userId,
       },
     })
     return NextResponse.json(product)

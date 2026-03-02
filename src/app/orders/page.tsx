@@ -91,6 +91,7 @@ interface Order {
   commission: number;
   note: string | null;
   createdAt: string;
+  createdBy: { id: number; name: string } | null;
 }
 
 interface CartItem {
@@ -698,6 +699,9 @@ export default function OrdersPage() {
                   <TableHead className="hidden lg:table-cell">
                     หมายเหตุ
                   </TableHead>
+                  <TableHead className="hidden xl:table-cell text-muted-foreground">
+                    สร้างโดย
+                  </TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -745,6 +749,9 @@ export default function OrdersPage() {
                     <TableCell className="text-sm text-gray-500 hidden lg:table-cell">
                       {order.note || "-"}
                     </TableCell>
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
+                      {order.createdBy?.name || "-"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -770,7 +777,7 @@ export default function OrdersPage() {
                 {orders.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center text-muted-foreground py-8"
                     >
                       <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />

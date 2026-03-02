@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { Niramit } from "next/font/google"
 import "./globals.css"
-import { Sidebar } from "@/components/sidebar"
+import { AuthProvider } from "@/components/auth-provider"
+import { AppShell } from "@/components/app-shell"
 
 const niramit = Niramit({ 
   weight: ["200", "300", "400", "500", "600", "700"],
@@ -21,12 +22,11 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body className={niramit.className}>
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-8 bg-gray-50">
+        <AuthProvider>
+          <AppShell>
             {children}
-          </main>
-        </div>
+          </AppShell>
+        </AuthProvider>
       </body>
     </html>
   )

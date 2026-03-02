@@ -38,6 +38,11 @@ interface Shop {
   platform: Platform
 }
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface Expense {
   id: number
   description: string
@@ -48,6 +53,7 @@ interface Expense {
   shop: Shop | null
   date: string
   createdAt: string
+  createdBy: CreatedByUser | null
 }
 
 const categories = [
@@ -460,6 +466,7 @@ export default function ExpensesPage() {
                   <TableHead className="hidden sm:table-cell">ประเภท</TableHead>
                   <TableHead className="hidden md:table-cell">แพลตฟอร์ม/ร้าน</TableHead>
                   <TableHead className="text-right">จำนวนเงิน</TableHead>
+                  <TableHead className="hidden lg:table-cell text-muted-foreground">สร้างโดย</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -498,6 +505,9 @@ export default function ExpensesPage() {
                     <TableCell className={`text-right font-medium text-xs sm:text-sm ${expense.isAdCost ? "text-orange-600" : "text-red-600"}`}>
                       ฿{expense.amount.toLocaleString()}
                     </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {expense.createdBy?.name || "-"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -512,7 +522,7 @@ export default function ExpensesPage() {
                 ))}
                 {expenses.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                       <Wallet className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">ยังไม่มีค่าใช้จ่าย</p>
                       <p className="text-sm">เริ่มต้นด้วยการบันทึกค่าใช้จ่ายใหม่</p>

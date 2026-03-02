@@ -25,6 +25,11 @@ import {
 } from "@/components/ui/table"
 import { Users, Plus, Trash2, Loader2, Percent, UserPlus, Edit2 } from "lucide-react"
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface Employee {
   id: number
   name: string
@@ -32,6 +37,8 @@ interface Employee {
   commissionType: string
   commissionValue: number
   createdAt: string
+  createdBy: CreatedByUser | null
+  updatedBy: CreatedByUser | null
 }
 
 export default function EmployeesPage() {
@@ -245,6 +252,7 @@ export default function EmployeesPage() {
                 <TableRow className="bg-muted/50">
                   <TableHead>ชื่อพนักงาน</TableHead>
                   <TableHead className="text-right">อัตราคอมมิชชั่น</TableHead>
+                  <TableHead className="hidden md:table-cell text-muted-foreground">สร้างโดย</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -278,6 +286,9 @@ export default function EmployeesPage() {
                         )}
                       </Badge>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                      {employee.createdBy?.name || "-"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -304,7 +315,7 @@ export default function EmployeesPage() {
                 ))}
                 {employees.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
                       <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">ยังไม่มีพนักงาน</p>
                       <p className="text-sm">เริ่มต้นด้วยการเพิ่มพนักงานใหม่</p>

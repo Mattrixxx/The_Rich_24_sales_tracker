@@ -39,7 +39,23 @@ import {
   Store,
   Loader2,
   Percent,
+  PieChart as PieChartIcon,
 } from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+} from "recharts"
 
 interface OrderItem {
   id: number
@@ -145,6 +161,27 @@ interface DashboardData {
     startDate: string
     endDate: string
   }
+}
+
+// Colors for charts
+const CHART_COLORS = [
+  "#22c55e", // green
+  "#3b82f6", // blue
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // purple
+  "#06b6d4", // cyan
+  "#ec4899", // pink
+  "#84cc16", // lime
+]
+
+const formatCurrency = (value: number) => {
+  if (value >= 1000000) {
+    return `฿${(value / 1000000).toFixed(1)}M`
+  } else if (value >= 1000) {
+    return `฿${(value / 1000).toFixed(0)}K`
+  }
+  return `฿${value}`
 }
 
 export default function Dashboard() {
@@ -402,6 +439,256 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Revenue Breakdown Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <PieChartIcon className="w-5 h-5 text-green-600" />
+              สัดส่วนยอดขายตามแพลตฟอร์ม
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.ordersByPlatform.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">ไม่มีข้อมูล</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={data.ordersByPlatform
+                      .sort((a, b) => b.revenue - a.revenue)
+                      .map((item, index) => ({
+                        name: item.platform,
+                        value: item.revenue,
+                        count: item.count,
+                      }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }: { name?: string; percent?: number }) => 
+                      (percent ?? 0) > 0.05 ? `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%` : ''
+                    }
+                  >
+                    {data.ordersByPlatform.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => [`฿${Number(value).toLocaleString()}`, 'ยอดขาย']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue vs Ad Costs Bar Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              เปรียบเทียบยอดขาย vs ค่าโฆษณา
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.platformPerformance.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">ไม่มีข้อมูล</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={data.platformPerformance
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .slice(0, 6)}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="platform" 
+                    tick={{ fontSize: 12 }} 
+                    interval={0}
+                    angle={-20}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }} 
+                    tickFormatter={formatCurrency}
+                    width={65}
+                  />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      `฿${Number(value).toLocaleString()}`, 
+                      name === 'revenue' ? 'ยอดขาย' : 'ค่าโฆษณา'
+                    ]}
+                  />
+                  <Legend 
+                    formatter={(value) => value === 'revenue' ? 'ยอดขาย' : 'ค่าโฆษณา'}
+                  />
+                  <Bar dataKey="revenue" fill="#22c55e" name="revenue" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="adCost" fill="#f97316" name="adCost" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Employee Performance Bar Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <Users className="w-5 h-5 text-purple-600" />
+              ยอดขายตามพนักงาน
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.ordersByEmployee.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">ไม่มีข้อมูล</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={data.ordersByEmployee
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .slice(0, 8)}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fontSize: 11 }} 
+                    tickFormatter={formatCurrency}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="employee" 
+                    tick={{ fontSize: 12 }} 
+                    width={55}
+                  />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      `฿${Number(value).toLocaleString()}`, 
+                      name === 'revenue' ? 'ยอดขาย' : 'คอมมิชชั่น'
+                    ]}
+                  />
+                  <Legend 
+                    formatter={(value) => value === 'revenue' ? 'ยอดขาย' : 'คอมมิชชั่น'}
+                  />
+                  <Bar dataKey="revenue" fill="#8b5cf6" name="revenue" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="commission" fill="#06b6d4" name="commission" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Expense Breakdown Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <CreditCard className="w-5 h-5 text-red-600" />
+              สัดส่วนค่าใช้จ่าย
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(data.expensesByCategory.length === 0 && data.totalAdCosts === 0) ? (
+              <p className="text-muted-foreground text-center py-8">ไม่มีข้อมูล</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      ...(data.totalAdCosts > 0 ? [{ name: 'ค่าโฆษณา', value: data.totalAdCosts }] : []),
+                      ...data.expensesByCategory
+                        .sort((a, b) => b.amount - a.amount)
+                        .map((item) => ({
+                          name: item.category,
+                          value: item.amount,
+                        }))
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }: { name?: string; percent?: number }) => 
+                      (percent ?? 0) > 0.05 ? `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%` : ''
+                    }
+                  >
+                    {[
+                      ...(data.totalAdCosts > 0 ? [{ name: 'ค่าโฆษณา' }] : []),
+                      ...data.expensesByCategory
+                    ].map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={index === 0 && data.totalAdCosts > 0 ? '#f97316' : CHART_COLORS[(index + (data.totalAdCosts > 0 ? 0 : 1)) % CHART_COLORS.length]} 
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => [`฿${Number(value).toLocaleString()}`, 'จำนวน']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Shop Performance Bar Chart */}
+      {data.shopPerformance.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <Store className="w-5 h-5 text-indigo-600" />
+              เปรียบเทียบยอดขายร้านค้า
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={data.shopPerformance
+                  .sort((a, b) => b.revenue - a.revenue)
+                  .slice(0, 8)}
+                margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="shop" 
+                  tick={{ fontSize: 11 }} 
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }} 
+                  tickFormatter={formatCurrency}
+                  width={65}
+                />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    `฿${Number(value).toLocaleString()}`, 
+                    name === 'revenue' ? 'ยอดขาย' : name === 'adCost' ? 'ค่าโฆษณา' : 'กำไร'
+                  ]}
+                  labelFormatter={(label) => `ร้าน: ${label}`}
+                />
+                <Legend 
+                  formatter={(value) => value === 'revenue' ? 'ยอดขาย' : value === 'adCost' ? 'ค่าโฆษณา' : 'กำไร'}
+                />
+                <Bar dataKey="revenue" fill="#22c55e" name="revenue" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="adCost" fill="#f97316" name="adCost" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="profit" fill="#3b82f6" name="profit" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Returns Summary */}
       {data.totalReturns > 0 && (

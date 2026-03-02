@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,8 @@ export async function GET(request: Request) {
       orderBy: [{ platform: { name: "asc" } }, { name: "asc" }],
       include: {
         platform: true,
+        createdBy: { select: { id: true, name: true } },
+        updatedBy: { select: { id: true, name: true } },
       },
     })
     return NextResponse.json(shops)
@@ -24,10 +27,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    const userId = await getCurrentUserId()
     const shop = await prisma.shop.create({
       data: {
         name: body.name,
         platformId: parseInt(body.platformId),
+        createdById: userId,
+        updatedById: userId,
       },
       include: {
         platform: true,

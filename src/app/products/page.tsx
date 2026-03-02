@@ -18,6 +18,11 @@ import {
 } from "@/components/ui/table"
 import { Package, Plus, Trash2, AlertTriangle, Loader2, TrendingUp } from "lucide-react"
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface Product {
   id: number
   name: string
@@ -25,6 +30,8 @@ interface Product {
   price: number
   stock: number
   createdAt: string
+  createdBy: CreatedByUser | null
+  updatedBy: CreatedByUser | null
 }
 
 export default function ProductsPage() {
@@ -218,6 +225,7 @@ export default function ProductsPage() {
                   <TableHead className="text-right hidden sm:table-cell">ต้นทุน</TableHead>
                   <TableHead className="text-right hidden sm:table-cell">ราคาขาย</TableHead>
                   <TableHead className="text-right hidden md:table-cell">กำไร/ชิ้น</TableHead>
+                  <TableHead className="hidden lg:table-cell text-muted-foreground">สร้างโดย</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -248,6 +256,9 @@ export default function ProductsPage() {
                         ฿{(product.price - product.cost).toLocaleString()}
                       </div>
                     </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {product.createdBy?.name || "-"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -263,7 +274,7 @@ export default function ProductsPage() {
                 ))}
                 {products.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                       <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">ยังไม่มีสินค้า</p>
                       <p className="text-sm">เริ่มต้นด้วยการเพิ่มสินค้าใหม่</p>

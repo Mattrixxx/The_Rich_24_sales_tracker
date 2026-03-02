@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export async function DELETE(
   request: Request,
@@ -27,13 +28,15 @@ export async function PUT(
     // Convert percentage to decimal (e.g., 5 -> 0.05), keep fixed amount as is
     const finalValue = commissionType === "percentage" ? commissionValue / 100 : commissionValue
     
+    const userId = await getCurrentUserId()
     const employee = await prisma.employee.update({
       where: { id: parseInt(params.id) },
       data: {
         name: body.name,
         commissionType,
         commissionValue: finalValue,
-        commissionRate: commissionType === "percentage" ? finalValue : 0.05, // backward compatibility
+        commissionRate: commissionType === "percentage" ? finalValue : 0.05,
+        updatedById: userId,
       },
     })
     return NextResponse.json(employee)

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       include: {
         product: true,
+        createdBy: { select: { id: true, name: true } },
       },
     })
     return NextResponse.json(stockIns)
@@ -41,6 +43,8 @@ export async function POST(request: Request) {
     const newStock = currentStock + quantity
     const newAverageCost = newStock > 0 ? newTotalCost / newStock : costPerUnit
 
+    const userId = await getCurrentUserId()
+
     // Create stock-in record and update product in a transaction
     const [stockIn] = await prisma.$transaction([
       prisma.stockIn.create({
@@ -50,6 +54,7 @@ export async function POST(request: Request) {
           costPerUnit,
           totalCost,
           note: body.note || null,
+          createdById: userId,
         },
         include: {
           product: true,

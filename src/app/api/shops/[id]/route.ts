@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export async function GET(
   request: Request,
@@ -25,11 +26,13 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
+    const userId = await getCurrentUserId()
     const shop = await prisma.shop.update({
       where: { id: parseInt(params.id) },
       data: {
         name: body.name,
         platformId: parseInt(body.platformId),
+        updatedById: userId,
       },
       include: { platform: true },
     })

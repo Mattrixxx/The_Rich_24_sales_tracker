@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
               product: true,
             },
           },
+          createdBy: { select: { id: true, name: true } },
         },
       }),
       prisma.order.count(),
@@ -88,6 +90,7 @@ export async function POST(request: Request) {
     }
 
     const totalPrice = parseFloat(body.totalPrice)
+    const userId = await getCurrentUserId()
     // Commission: 50 THB per order if isWholesale, else normal logic
     let commission = 0;
     if (body.isWholesale) {
@@ -115,6 +118,7 @@ export async function POST(request: Request) {
           note: body.note || null,
           shopId: body.shopId ? parseInt(body.shopId) : null,
           createdAt: orderDate,
+          createdById: userId,
           items: {
             create: items.map((item) => {
               const product = products.find((p) => p.id === parseInt(item.productId.toString()))!

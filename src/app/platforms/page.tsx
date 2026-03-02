@@ -18,10 +18,16 @@ import {
 } from "@/components/ui/table"
 import { Globe, Plus, Trash2, Loader2 } from "lucide-react"
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface Platform {
   id: number
   name: string
   createdAt: string
+  createdBy: CreatedByUser | null
 }
 
 export default function PlatformsPage() {
@@ -145,8 +151,7 @@ export default function PlatformsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>ชื่อแพลตฟอร์ม</TableHead>
-                  <TableHead className="text-right">จัดการ</TableHead>
+                  <TableHead>ชื่อแพลตฟอร์ม</TableHead>                  <TableHead className="hidden md:table-cell text-muted-foreground">สร้างโดย</TableHead>                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,6 +164,9 @@ export default function PlatformsPage() {
                         </div>
                         {platform.name}
                       </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                      {platform.createdBy?.name || "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -175,7 +183,7 @@ export default function PlatformsPage() {
                 ))}
                 {platforms.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-12">
                       <Globe className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">ยังไม่มีแพลตฟอร์ม</p>
                       <p className="text-sm">เริ่มต้นด้วยการเพิ่มแพลตฟอร์มใหม่</p>

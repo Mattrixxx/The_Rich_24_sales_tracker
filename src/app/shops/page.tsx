@@ -28,11 +28,17 @@ interface Platform {
   name: string
 }
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface Shop {
   id: number
   name: string
   platform: Platform
   createdAt: string
+  createdBy: CreatedByUser | null
 }
 
 export default function ShopsPage() {
@@ -256,7 +262,12 @@ export default function ShopsPage() {
                       </div>
                     ) : (
                       <>
-                        <span className="font-medium truncate">{shop.name}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium truncate block">{shop.name}</span>
+                          {shop.createdBy && (
+                            <span className="text-xs text-muted-foreground">สร้างโดย: {shop.createdBy.name}</span>
+                          )}
+                        </div>
                         <div className="flex gap-1 justify-end">
                           <Button
                             size="sm"

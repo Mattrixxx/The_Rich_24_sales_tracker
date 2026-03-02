@@ -7,17 +7,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AppUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // bcrypt hashed
+  name      String
+  role      String   @default("user") // "admin" or "user"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Audit relations
+  productsCreated   Product[]       @relation("ProductCreatedBy")
+  productsUpdated   Product[]       @relation("ProductUpdatedBy")
+  stockInsCreated   StockIn[]       @relation("StockInCreatedBy")
+  employeesCreated  Employee[]      @relation("EmployeeCreatedBy")
+  employeesUpdated  Employee[]      @relation("EmployeeUpdatedBy")
+  platformsCreated  Platform[]      @relation("PlatformCreatedBy")
+  platformsUpdated  Platform[]      @relation("PlatformUpdatedBy")
+  shopsCreated      Shop[]          @relation("ShopCreatedBy")
+  shopsUpdated      Shop[]          @relation("ShopUpdatedBy")
+  ordersCreated     Order[]         @relation("OrderCreatedBy")
+  expensesCreated   Expense[]       @relation("ExpenseCreatedBy")
+  expensesUpdated   Expense[]       @relation("ExpenseUpdatedBy")
+  returnsCreated    ProductReturn[] @relation("ReturnCreatedBy")
+
+  @@map("app_users")
+}
+
 model Product {
-  id         Int             @id @default(autoincrement())
-  name       String
-  cost       Float
-  price      Float
-  stock      Int             @default(0)
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  stockIns   StockIn[]
-  orderItems OrderItem[]
-  returns    ProductReturn[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  cost          Float
+  price         Float
+  stock         Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  createdBy     AppUser?        @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  createdById   Int?
+  updatedBy     AppUser?        @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  updatedById   Int?
+  stockIns      StockIn[]
+  orderItems    OrderItem[]
+  returns       ProductReturn[]
 }
 
 model StockIn {
@@ -29,6 +61,8 @@ model StockIn {
   totalCost   Float
   note        String?
   createdAt   DateTime @default(now())
+  createdBy   AppUser? @relation("StockInCreatedBy", fields: [createdById], references: [id])
+  createdById Int?
 }
 
 model Employee {
@@ -39,45 +73,59 @@ model Employee {
   commissionValue Float    @default(0.05) // 0.05 for 5% or fixed amount
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  createdBy       AppUser? @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
+  createdById     Int?
+  updatedBy       AppUser? @relation("EmployeeUpdatedBy", fields: [updatedById], references: [id])
+  updatedById     Int?
   orders          Order[]
 }
 
 model Platform {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  orders    Order[]
-  expenses  Expense[]
-  shops     Shop[]
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   AppUser?  @relation("PlatformCreatedBy", fields: [createdById], references: [id])
+  createdById Int?
+  updatedBy   AppUser?  @relation("PlatformUpdatedBy", fields: [updatedById], references: [id])
+  updatedById Int?
+  orders      Order[]
+  expenses    Expense[]
+  shops       Shop[]
 }
 
 model Shop {
-  id         Int       @id @default(autoincrement())
-  name       String
-  platform   Platform  @relation(fields: [platformId], references: [id])
-  platformId Int
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  orders     Order[]
-  expenses   Expense[]
+  id          Int       @id @default(autoincrement())
+  name        String
+  platform    Platform  @relation(fields: [platformId], references: [id])
+  platformId  Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   AppUser?  @relation("ShopCreatedBy", fields: [createdById], references: [id])
+  createdById Int?
+  updatedBy   AppUser?  @relation("ShopUpdatedBy", fields: [updatedById], references: [id])
+  updatedById Int?
+  orders      Order[]
+  expenses    Expense[]
 
   @@unique([name, platformId])
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
-  employee   Employee    @relation(fields: [employeeId], references: [id])
-  employeeId Int
-  platform   Platform    @relation(fields: [platformId], references: [id])
-  platformId Int
-  shop       Shop?       @relation(fields: [shopId], references: [id])
-  shopId     Int?
-  items      OrderItem[]
-  totalPrice Float
-  commission Float
-  note       String?
-  createdAt  DateTime    @default(now())
+  id          Int         @id @default(autoincrement())
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+  employeeId  Int
+  platform    Platform    @relation(fields: [platformId], references: [id])
+  platformId  Int
+  shop        Shop?       @relation(fields: [shopId], references: [id])
+  shopId      Int?
+  items       OrderItem[]
+  totalPrice  Float
+  commission  Float
+  note        String?
+  createdAt   DateTime    @default(now())
+  createdBy   AppUser?    @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  createdById Int?
 }
 
 model OrderItem {
@@ -103,6 +151,11 @@ model Expense {
   shopId      Int?
   date        DateTime
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  createdBy   AppUser?  @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  createdById Int?
+  updatedBy   AppUser?  @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  updatedById Int?
 }
 
 model ProductReturn {
@@ -115,4 +168,6 @@ model ProductReturn {
   reason        String?  // เหตุผลการตีกลับ
   note          String?
   createdAt     DateTime @default(now())
+  createdBy     AppUser? @relation("ReturnCreatedBy", fields: [createdById], references: [id])
+  createdById   Int?
 }

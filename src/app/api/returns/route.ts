@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserId } from "@/lib/session"
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
     const returns = await prisma.productReturn.findMany({
-      include: { product: true },
+      include: {
+        product: true,
+        createdBy: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     })
     return NextResponse.json(returns)
@@ -25,6 +29,7 @@ export async function POST(request: Request) {
     const { productId, quantity, amount, returnToStock, reason, note } = body
 
     // Create return record
+    const userId = await getCurrentUserId()
     const productReturn = await prisma.productReturn.create({
       data: {
         productId,
@@ -33,6 +38,7 @@ export async function POST(request: Request) {
         returnToStock: returnToStock ?? true,
         reason,
         note,
+        createdById: userId,
       },
       include: { product: true },
     })

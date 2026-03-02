@@ -22,6 +22,11 @@ import {
 } from "@/components/ui/table"
 import { PackagePlus, Plus, Loader2, Package, DollarSign, ListOrdered } from "lucide-react"
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface Product {
   id: number
   name: string
@@ -38,6 +43,7 @@ interface StockIn {
   totalCost: number
   note: string | null
   createdAt: string
+  createdBy: CreatedByUser | null
 }
 
 export default function StockInPage() {
@@ -290,6 +296,7 @@ export default function StockInPage() {
                   <TableHead className="text-right">จำนวน</TableHead>
                   <TableHead className="text-right hidden sm:table-cell">ต้นทุน/ชิ้น</TableHead>
                   <TableHead className="text-right">รวม</TableHead>
+                  <TableHead className="hidden lg:table-cell">สร้างโดย</TableHead>
                   <TableHead className="hidden md:table-cell">หมายเหตุ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -307,6 +314,9 @@ export default function StockInPage() {
                     <TableCell className="text-right font-medium text-xs sm:text-sm">
                       ฿{stockIn.totalCost.toLocaleString()}
                     </TableCell>
+                    <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
+                      {stockIn.createdBy?.name || "-"}
+                    </TableCell>
                     <TableCell className="text-muted-foreground hidden md:table-cell">
                       {stockIn.note || "-"}
                     </TableCell>
@@ -314,7 +324,7 @@ export default function StockInPage() {
                 ))}
                 {stockIns.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       <PackagePlus className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       ยังไม่มีประวัติการรับเข้า
                     </TableCell>

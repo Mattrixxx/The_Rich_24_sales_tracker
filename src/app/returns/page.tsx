@@ -30,6 +30,11 @@ interface Product {
   stock: number
 }
 
+interface CreatedByUser {
+  id: number
+  name: string
+}
+
 interface ProductReturn {
   id: number
   product: Product
@@ -40,6 +45,7 @@ interface ProductReturn {
   reason: string | null
   note: string | null
   createdAt: string
+  createdBy: CreatedByUser | null
 }
 
 export default function ReturnsPage() {
@@ -407,8 +413,7 @@ export default function ReturnsPage() {
                     <TableHead className="text-right hidden sm:table-cell">ยอดเงิน</TableHead>
                     <TableHead className="text-center hidden sm:table-cell">คืนสต็อก</TableHead>
                     <TableHead className="hidden md:table-cell">เหตุผล</TableHead>
-                    <TableHead className="hidden lg:table-cell">หมายเหตุ</TableHead>
-                    <TableHead className="text-right">จัดการ</TableHead>
+                    <TableHead className="hidden lg:table-cell">หมายเหตุ</TableHead>                    <TableHead className="hidden xl:table-cell text-muted-foreground">สร้างโดย</TableHead>                    <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -444,6 +449,9 @@ export default function ReturnsPage() {
                       <TableCell className="hidden md:table-cell">{productReturn.reason || "-"}</TableCell>
                       <TableCell className="max-w-[200px] truncate hidden lg:table-cell">
                         {productReturn.note || "-"}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
+                        {productReturn.createdBy?.name || "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
