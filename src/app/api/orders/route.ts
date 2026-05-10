@@ -11,11 +11,29 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
 
+    const employeeId = searchParams.get("employeeId");
+    const platformId = searchParams.get("platformId");
+    const shopId = searchParams.get("shopId");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
+
+    const where: Record<string, unknown> = {};
+    if (employeeId) where.employeeId = parseInt(employeeId);
+    if (platformId) where.platformId = parseInt(platformId);
+    if (shopId) where.shopId = parseInt(shopId);
+    if (dateFrom || dateTo) {
+      where.createdAt = {
+        ...(dateFrom ? { gte: new Date(dateFrom + "T00:00:00") } : {}),
+        ...(dateTo ? { lte: new Date(dateTo + "T23:59:59") } : {}),
+      };
+    }
+
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
+        where,
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         include: {
           employee: true,
           platform: true,
@@ -28,7 +46,7 @@ export async function GET(request: Request) {
           createdBy: { select: { id: true, name: true } },
         },
       }),
-      prisma.order.count(),
+      prisma.order.count({ where }),
     ]);
 
     return NextResponse.json({

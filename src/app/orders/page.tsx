@@ -46,6 +46,8 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Filter,
+  X,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 
@@ -131,27 +133,85 @@ export default function OrdersPage() {
   const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
-  const fetchData = async (page = 1) => {
-    setPageLoading(true);
-    const [ordersRes, productsRes, employeesRes, platformsRes, shopsRes] =
-      await Promise.all([
-        fetch(`/api/orders?page=${page}&limit=${itemsPerPage}`),
-        fetch("/api/products"),
-        fetch("/api/employees"),
-        fetch("/api/platforms"),
-        fetch("/api/shops"),
-      ]);
+  const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [filterPlatformId, setFilterPlatformId] = useState("");
+  const [filterShopId, setFilterShopId] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
 
+  const formatDateLocal = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const fetchOrders = async (
+    page = 1,
+    filters?: {
+      employeeId?: string;
+      platformId?: string;
+      shopId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    }
+  ) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(itemsPerPage) });
+    const f = filters ?? {
+      employeeId: filterEmployeeId,
+      platformId: filterPlatformId,
+      shopId: filterShopId,
+      dateFrom: filterDateFrom ? formatDateLocal(filterDateFrom) : undefined,
+      dateTo: filterDateTo ? formatDateLocal(filterDateTo) : undefined,
+    };
+    if (f.employeeId) params.set("employeeId", f.employeeId);
+    if (f.platformId) params.set("platformId", f.platformId);
+    if (f.shopId) params.set("shopId", f.shopId);
+    if (f.dateFrom) params.set("dateFrom", f.dateFrom);
+    if (f.dateTo) params.set("dateTo", f.dateTo);
+
+    const ordersRes = await fetch(`/api/orders?${params}`);
     const ordersJson = await ordersRes.json();
     setOrders(ordersJson.orders || []);
     setTotalOrders(ordersJson.total || 0);
     setTotalPages(ordersJson.totalPages || 1);
     setCurrentPage(ordersJson.page || 1);
+  };
+
+  const fetchData = async (page = 1) => {
+    setPageLoading(true);
+    const [, productsRes, employeesRes, platformsRes, shopsRes] =
+      await Promise.all([
+        fetchOrders(page),
+        fetch("/api/products"),
+        fetch("/api/employees"),
+        fetch("/api/platforms"),
+        fetch("/api/shops"),
+      ]);
     setProducts(await productsRes.json());
     setEmployees(await employeesRes.json());
     setPlatforms(await platformsRes.json());
     setShops(await shopsRes.json());
     setPageLoading(false);
+  };
+
+  const handleFilter = (page = 1) => {
+    fetchOrders(page, {
+      employeeId: filterEmployeeId,
+      platformId: filterPlatformId,
+      shopId: filterShopId,
+      dateFrom: filterDateFrom ? formatDateLocal(filterDateFrom) : undefined,
+      dateTo: filterDateTo ? formatDateLocal(filterDateTo) : undefined,
+    });
+  };
+
+  const handleClearFilter = () => {
+    setFilterEmployeeId("");
+    setFilterPlatformId("");
+    setFilterShopId("");
+    setFilterDateFrom(undefined);
+    setFilterDateTo(undefined);
+    fetchOrders(1, {});
   };
 
   useEffect(() => {
@@ -672,8 +732,78 @@ export default function OrdersPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Filter className="h-5 w-5" />
+            ตัวกรอง
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <Label className="text-xs text-muted-foreground">จากวันที่</Label>
+              <DatePicker date={filterDateFrom} onDateChange={setFilterDateFrom} placeholder="เลือกวันที่" className="w-full" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">ถึงวันที่</Label>
+              <DatePicker date={filterDateTo} onDateChange={setFilterDateTo} placeholder="เลือกวันที่" className="w-full" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">พนักงาน</Label>
+              <Select value={filterEmployeeId} onValueChange={setFilterEmployeeId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="ทั้งหมด" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">แพลตฟอร์ม</Label>
+              <Select value={filterPlatformId} onValueChange={(v) => { setFilterPlatformId(v); setFilterShopId(""); }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="ทั้งหมด" />
+                </SelectTrigger>
+                <SelectContent>
+                  {platforms.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">ร้านค้า</Label>
+              <Select value={filterShopId} onValueChange={setFilterShopId} disabled={!filterPlatformId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="ทั้งหมด" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shops.filter((s) => s.platform.id === parseInt(filterPlatformId)).map((s) => (
+                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Button onClick={() => handleFilter(1)}>
+              <Filter className="h-4 w-4 mr-1" />
+              กรอง
+            </Button>
+            <Button variant="outline" onClick={handleClearFilter}>
+              <X className="h-4 w-4 mr-1" />
+              ล้าง
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <ShoppingCart className="h-5 w-5" />
-            รายการออเดอร์ ({orders.length} รายการ)
+            รายการออเดอร์ ({totalOrders} รายการ)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -797,7 +927,7 @@ export default function OrdersPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchData(currentPage - 1)}
+                  onClick={() => handleFilter(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
@@ -823,7 +953,7 @@ export default function OrdersPage() {
                           <Button
                             variant={currentPage === page ? "default" : "outline"}
                             size="sm"
-                            onClick={() => fetchData(page)}
+                            onClick={() => handleFilter(page)}
                             className="min-w-[2.5rem]"
                           >
                             {page}
@@ -835,7 +965,7 @@ export default function OrdersPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchData(currentPage + 1)}
+                  onClick={() => handleFilter(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
                   <span className="hidden sm:inline">ถัดไป</span>

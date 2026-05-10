@@ -20,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PackagePlus, Plus, Loader2, Package, DollarSign, ListOrdered } from "lucide-react"
+import { PackagePlus, Plus, Loader2, Package, DollarSign, ListOrdered, Trash2 } from "lucide-react"
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
 
 interface CreatedByUser {
   id: number
@@ -55,6 +56,8 @@ export default function StockInPage() {
   const [note, setNote] = useState("")
   const [loading, setLoading] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const fetchData = async () => {
     const [stockInsRes, productsRes] = await Promise.all([
@@ -98,6 +101,15 @@ export default function StockInPage() {
     setCostPerUnit("")
     setNote("")
     setLoading(false)
+    fetchData()
+  }
+
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleteLoading(true)
+    await fetch(`/api/stock-in/${deleteId}`, { method: "DELETE" })
+    setDeleteId(null)
+    setDeleteLoading(false)
     fetchData()
   }
 
@@ -298,6 +310,7 @@ export default function StockInPage() {
                   <TableHead className="text-right">รวม</TableHead>
                   <TableHead className="hidden lg:table-cell">สร้างโดย</TableHead>
                   <TableHead className="hidden md:table-cell">หมายเหตุ</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -320,6 +333,15 @@ export default function StockInPage() {
                     <TableCell className="text-muted-foreground hidden md:table-cell">
                       {stockIn.note || "-"}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleteId(stockIn.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {stockIns.length === 0 && (
@@ -335,6 +357,14 @@ export default function StockInPage() {
           </div>
         </CardContent>
       </Card>
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="ลบรายการรับเข้าสินค้า"
+        description="คุณต้องการลบรายการนี้ใช่หรือไม่? สต็อกสินค้าจะถูกหักคืนอัตโนมัติ"
+        loading={deleteLoading}
+      />
     </div>
   )
 }
