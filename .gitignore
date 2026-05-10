@@ -35,3 +35,5 @@ yarn-error.log*
 next-env.d.ts
 
 /scripts/seed-admin.js
+
+docker-compose.yml
