@@ -1,18 +1,46 @@
+# version: '3.8'
+
+# services:
+#   postgres:
+#     image: postgres:16-alpine
+#     container_name: rich24_postgres
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_USER: rich24
+#       POSTGRES_PASSWORD: rich24password
+#       POSTGRES_DB: rich24_sales
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data:
+
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: rich24_postgres
+  app:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: nextjs-app
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: rich24
-      POSTGRES_PASSWORD: rich24password
-      POSTGRES_DB: rich24_sales
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "3012:3012"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    networks:
+      - default
 
-volumes:
-  postgres_data:
+networks:
+  # Network ของตัวเอง
+  default:
+  
+  # เชื่อมต่อไปยัง Network ภายนอกที่ Container อื่นๆ รันอยู่
+  db_net:
+    external: true
+    name: api_smart-restaurant-network
+ 
