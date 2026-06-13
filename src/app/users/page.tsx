@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Pencil, UserX, UserCheck, ShieldCheck, User } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Plus, Pencil, UserX, UserCheck, ShieldCheck, User, Building2 } from "lucide-react"
 
 interface AppUser {
   id: number
@@ -31,12 +32,19 @@ interface AppUser {
   role: string
   isActive: boolean
   createdAt: string
+  companyIds: number[]
+}
+
+interface Company {
+  id: number
+  name: string
 }
 
 export default function UsersPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [users, setUsers] = useState<AppUser[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showDialog, setShowDialog] = useState(false)
   const [editUser, setEditUser] = useState<AppUser | null>(null)
@@ -46,6 +54,7 @@ export default function UsersPage() {
     name: "",
     role: "user",
     isActive: true,
+    companyIds: [] as number[],
   })
   const [error, setError] = useState("")
 
@@ -54,6 +63,7 @@ export default function UsersPage() {
     if (!session) { router.push("/login"); return }
     if (session.user.role !== "admin") { router.push("/"); return }
     fetchUsers()
+    fetchCompanies()
   }, [session, status])
 
   const fetchUsers = async () => {
@@ -65,18 +75,35 @@ export default function UsersPage() {
     setIsLoading(false)
   }
 
+  const fetchCompanies = async () => {
+    const res = await fetch("/api/companies")
+    if (res.ok) {
+      const data = await res.json()
+      setCompanies(data.companies || [])
+    }
+  }
+
   const openCreate = () => {
     setEditUser(null)
-    setForm({ username: "", password: "", name: "", role: "user", isActive: true })
+    setForm({ username: "", password: "", name: "", role: "user", isActive: true, companyIds: [] })
     setError("")
     setShowDialog(true)
   }
 
   const openEdit = (user: AppUser) => {
     setEditUser(user)
-    setForm({ username: user.username, password: "", name: user.name, role: user.role, isActive: user.isActive })
+    setForm({ username: user.username, password: "", name: user.name, role: user.role, isActive: user.isActive, companyIds: user.companyIds || [] })
     setError("")
     setShowDialog(true)
+  }
+
+  const toggleCompany = (companyId: number) => {
+    setForm((f) => ({
+      ...f,
+      companyIds: f.companyIds.includes(companyId)
+        ? f.companyIds.filter((id) => id !== companyId)
+        : [...f.companyIds, companyId],
+    }))
   }
 
   const handleSave = async () => {
@@ -84,8 +111,8 @@ export default function UsersPage() {
     const url = editUser ? `/api/users/${editUser.id}` : "/api/users"
     const method = editUser ? "PUT" : "POST"
     const body = editUser
-      ? { name: form.name, role: form.role, isActive: form.isActive, ...(form.password ? { password: form.password } : {}) }
-      : { username: form.username, password: form.password, name: form.name, role: form.role }
+      ? { name: form.name, role: form.role, isActive: form.isActive, companyIds: form.companyIds, ...(form.password ? { password: form.password } : {}) }
+      : { username: form.username, password: form.password, name: form.name, role: form.role, companyIds: form.companyIds }
 
     const res = await fetch(url, {
       method,
@@ -125,40 +152,49 @@ export default function UsersPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          <table className="w-full">
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">ชื่อ</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">Username</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">สิทธิ์</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">สถานะ</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">วันที่สร้าง</th>
+                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">ชื่อ</th>
+                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">Username</th>
+                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">สิทธิ์</th>
+                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">บริษัท</th>
+                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">สถานะ</th>
+                <th className="text-left px-6 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">วันที่สร้าง</th>
                 <th className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.username}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{user.name}</td>
+                  <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{user.username}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {user.role === "admin" ? (
-                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 gap-1">
+                      <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 gap-1">
                         <ShieldCheck className="h-3 w-3" /> Admin
                       </Badge>
                     ) : (
-                      <Badge className="bg-blue-100 text-blue-700 border-blue-200 gap-1">
+                      <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 gap-1">
                         <User className="h-3 w-3" /> User
                       </Badge>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    <Badge className={user.isActive ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}>
+                  <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                    {user.role === "admin"
+                      ? "ทุกบริษัท"
+                      : (user.companyIds || [])
+                          .map((id) => companies.find((c) => c.id === id)?.name)
+                          .filter(Boolean)
+                          .join(", ") || "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge variant="outline" className={user.isActive ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}>
                       {user.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">
+                  <td className="px-6 py-4 text-gray-500 text-sm whitespace-nowrap">
                     {new Date(user.createdAt).toLocaleDateString("th-TH")}
                   </td>
                   <td className="px-6 py-4">
@@ -233,6 +269,30 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
+            {form.role === "admin" ? (
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Building2 className="h-3.5 w-3.5" />
+                Admin เข้าถึงได้ทุกบริษัทโดยอัตโนมัติ
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <Label>บริษัทที่เข้าถึงได้</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  {companies.map((company) => (
+                    <label key={company.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.companyIds.includes(company.id)}
+                        onCheckedChange={() => toggleCompany(company.id)}
+                      />
+                      <span className="text-sm">{company.name}</span>
+                    </label>
+                  ))}
+                  {companies.length === 0 && (
+                    <p className="text-sm text-muted-foreground">ยังไม่มีบริษัทในระบบ</p>
+                  )}
+                </div>
+              </div>
+            )}
             {error && <p className="text-sm text-red-500">{error}</p>}
           </div>
           <DialogFooter>

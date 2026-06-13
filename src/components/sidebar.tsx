@@ -8,7 +8,9 @@ import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { CompanySwitcher } from "@/components/company-switcher"
 import {
+  Building2,
   LayoutDashboard,
   Package,
   PackagePlus,
@@ -40,6 +42,7 @@ const menuItems = [
 
 const adminMenuItems = [
   { href: "/users", label: "จัดการผู้ใช้", icon: ShieldCheck },
+  { href: "/companies", label: "จัดการบริษัท", icon: Building2 },
 ]
 
 export function Sidebar() {
@@ -70,7 +73,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 to-slate-950 text-white min-h-screen p-4 transform transition-transform duration-300 ease-in-out flex flex-col",
+          "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 to-slate-950 text-white h-full overflow-y-auto p-4 transform transition-transform duration-300 ease-in-out flex flex-col",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -85,6 +88,11 @@ export function Sidebar() {
             </h1>
           </div>
           <p className="text-xs text-slate-400 text-center">Sales Tracker System</p>
+        </div>
+
+        {/* Company switcher */}
+        <div className="mb-4">
+          <CompanySwitcher />
         </div>
 
         <Separator className="bg-slate-700 mb-4" />
