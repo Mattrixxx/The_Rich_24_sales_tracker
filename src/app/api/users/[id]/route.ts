@@ -10,25 +10,40 @@ export async function PUT(
   try {
     await requireAdmin()
     const body = await request.json()
-    const { name, role, isActive, password } = body
+    const { name, role, isActive, password, companyIds } = body
+    const userId = parseInt(params.id)
 
     const updateData: any = { name, role, isActive }
     if (password) {
       updateData.password = await hash(password, 12)
     }
 
-    const user = await prisma.appUser.update({
-      where: { id: parseInt(params.id) },
-      data: updateData,
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const updated = await tx.appUser.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+
+      // Reconcile company access (admin มีสิทธิ์ทุกบริษัทอยู่แล้ว)
+      if (Array.isArray(companyIds)) {
+        await tx.userCompany.deleteMany({ where: { userId } })
+        if (role !== "admin" && companyIds.length > 0) {
+          await tx.userCompany.createMany({
+            data: companyIds.map((companyId: number) => ({ userId, companyId })),
+          })
+        }
+      }
+
+      return updated
     })
     return NextResponse.json(user)
   } catch (error: any) {

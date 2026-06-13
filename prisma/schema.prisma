@@ -32,7 +32,37 @@ model AppUser {
   expensesUpdated   Expense[]       @relation("ExpenseUpdatedBy")
   returnsCreated    ProductReturn[] @relation("ReturnCreatedBy")
 
+  companyAccess UserCompany[]
+
   @@map("app_users")
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userAccess UserCompany[]
+  products   Product[]
+  stockIns   StockIn[]
+  employees  Employee[]
+  platforms  Platform[]
+  shops      Shop[]
+  orders     Order[]
+  expenses   Expense[]
+  returns    ProductReturn[]
+}
+
+model UserCompany {
+  id        Int      @id @default(autoincrement())
+  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
 }
 
 model Product {
@@ -50,6 +80,10 @@ model Product {
   stockIns      StockIn[]
   orderItems    OrderItem[]
   returns       ProductReturn[]
+  company       Company         @relation(fields: [companyId], references: [id])
+  companyId     Int
+
+  @@index([companyId])
 }
 
 model StockIn {
@@ -63,6 +97,10 @@ model StockIn {
   createdAt   DateTime @default(now())
   createdBy   AppUser? @relation("StockInCreatedBy", fields: [createdById], references: [id])
   createdById Int?
+  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   Int
+
+  @@index([companyId])
 }
 
 model Employee {
@@ -78,11 +116,15 @@ model Employee {
   updatedBy       AppUser? @relation("EmployeeUpdatedBy", fields: [updatedById], references: [id])
   updatedById     Int?
   orders          Order[]
+  company         Company  @relation(fields: [companyId], references: [id])
+  companyId       Int
+
+  @@index([companyId])
 }
 
 model Platform {
   id          Int       @id @default(autoincrement())
-  name        String    @unique
+  name        String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   createdBy   AppUser?  @relation("PlatformCreatedBy", fields: [createdById], references: [id])
@@ -92,6 +134,11 @@ model Platform {
   orders      Order[]
   expenses    Expense[]
   shops       Shop[]
+  company     Company   @relation(fields: [companyId], references: [id])
+  companyId   Int
+
+  @@unique([name, companyId])
+  @@index([companyId])
 }
 
 model Shop {
@@ -107,8 +154,11 @@ model Shop {
   updatedById Int?
   orders      Order[]
   expenses    Expense[]
+  company     Company   @relation(fields: [companyId], references: [id])
+  companyId   Int
 
   @@unique([name, platformId])
+  @@index([companyId])
 }
 
 model Order {
@@ -126,6 +176,10 @@ model Order {
   createdAt   DateTime    @default(now())
   createdBy   AppUser?    @relation("OrderCreatedBy", fields: [createdById], references: [id])
   createdById Int?
+  company     Company     @relation(fields: [companyId], references: [id])
+  companyId   Int
+
+  @@index([companyId])
 }
 
 model OrderItem {
@@ -156,6 +210,10 @@ model Expense {
   createdById Int?
   updatedBy   AppUser?  @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
   updatedById Int?
+  company     Company   @relation(fields: [companyId], references: [id])
+  companyId   Int
+
+  @@index([companyId])
 }
 
 model ProductReturn {
@@ -170,4 +228,8 @@ model ProductReturn {
   createdAt     DateTime @default(now())
   createdBy     AppUser? @relation("ReturnCreatedBy", fields: [createdById], references: [id])
   createdById   Int?
+  company       Company  @relation(fields: [companyId], references: [id])
+  companyId     Int
+
+  @@index([companyId])
 }

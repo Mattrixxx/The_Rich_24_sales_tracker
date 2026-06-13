@@ -18,9 +18,15 @@ export async function GET() {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        companyAccess: { select: { companyId: true } },
       },
     })
-    return NextResponse.json(users)
+    return NextResponse.json(
+      users.map(({ companyAccess, ...u }) => ({
+        ...u,
+        companyIds: companyAccess.map((c) => c.companyId),
+      }))
+    )
   } catch (error: any) {
     if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -32,7 +38,7 @@ export async function POST(request: Request) {
   try {
     await requireAdmin()
     const body = await request.json()
-    const { username, password, name, role } = body
+    const { username, password, name, role, companyIds } = body
 
     if (!username || !password || !name) {
       return NextResponse.json({ error: "กรุณากรอกข้อมูลให้ครบถ้วน" }, { status: 400 })
@@ -50,6 +56,14 @@ export async function POST(request: Request) {
         password: hashedPassword,
         name,
         role: role || "user",
+        // admin มีสิทธิ์ทุกบริษัทอยู่แล้ว ไม่ต้องสร้าง UserCompany
+        ...(role !== "admin" && Array.isArray(companyIds) && companyIds.length > 0
+          ? {
+              companyAccess: {
+                create: companyIds.map((companyId: number) => ({ companyId })),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,

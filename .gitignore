@@ -37,3 +37,6 @@ next-env.d.ts
 /scripts/seed-admin.js
 
 docker-compose.yml
+
+# database backups
+backup_*.sql

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getCurrentUserId } from "@/lib/session"
+import { requireCompany } from "@/lib/session"
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
+    const { companyId } = await requireCompany()
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { companyId };
     if (employeeId) where.employeeId = parseInt(employeeId);
     if (platformId) where.platformId = parseInt(platformId);
     if (shopId) where.shopId = parseInt(shopId);
@@ -55,7 +56,13 @@ export async function GET(request: Request) {
       page,
       totalPages: Math.ceil(total / limit),
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (error.message === "NO_COMPANY_ACCESS") {
+      return NextResponse.json({ error: "No company access" }, { status: 403 })
+    }
     return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
   }
 }
@@ -67,8 +74,9 @@ interface OrderItemInput {
 
 export async function POST(request: Request) {
   try {
+    const { userId, companyId } = await requireCompany()
     const body = await request.json()
-    
+
     // Get all products in the order
     const items: OrderItemInput[] = body.items || []
     if (items.length === 0) {
@@ -76,45 +84,59 @@ export async function POST(request: Request) {
     }
 
     const productIds = items.map((item) => parseInt(item.productId.toString()))
-    
+
     // รวม query employee และ products ไว้ด้วยกันเพื่อลดการใช้ connection
-    const [employee, products] = await Promise.all([
-      prisma.employee.findUnique({
-        where: { id: parseInt(body.employeeId) },
+    // ทุกรายการต้องอยู่ในบริษัทปัจจุบันเท่านั้น
+    const [employee, products, platform, shop] = await Promise.all([
+      prisma.employee.findFirst({
+        where: { id: parseInt(body.employeeId), companyId },
       }),
       prisma.product.findMany({
-        where: { id: { in: productIds } },
-      })
+        where: { id: { in: productIds }, companyId },
+      }),
+      prisma.platform.findFirst({
+        where: { id: parseInt(body.platformId), companyId },
+      }),
+      body.shopId
+        ? prisma.shop.findFirst({
+            where: { id: parseInt(body.shopId), companyId },
+          })
+        : Promise.resolve(null),
     ])
 
     if (!employee) {
       return NextResponse.json({ error: "ไม่พบพนักงาน" }, { status: 400 })
+    }
+    if (!platform) {
+      return NextResponse.json({ error: "ไม่พบแพลตฟอร์ม" }, { status: 400 })
+    }
+    if (body.shopId && !shop) {
+      return NextResponse.json({ error: "ไม่พบร้านค้า" }, { status: 400 })
     }
 
     // Check stock for all products
     for (const item of items) {
       const product = products.find((p) => p.id === parseInt(item.productId.toString()))
       const quantity = parseInt(item.quantity.toString())
-      
+
       if (!product) {
         return NextResponse.json({ error: `ไม่พบสินค้า ID: ${item.productId}` }, { status: 400 })
       }
-      
+
       if (product.stock < quantity) {
-        return NextResponse.json({ 
-          error: `สต๊อก "${product.name}" ไม่เพียงพอ (คงเหลือ ${product.stock} ชิ้น)` 
+        return NextResponse.json({
+          error: `สต๊อก "${product.name}" ไม่เพียงพอ (คงเหลือ ${product.stock} ชิ้น)`
         }, { status: 400 })
       }
     }
 
     const totalPrice = parseFloat(body.totalPrice)
-    const userId = await getCurrentUserId()
     // Commission: 50 THB per order if isWholesale, else normal logic
     let commission = 0;
     if (body.isWholesale) {
       commission = 50;
     } else {
-      commission = (employee as any).commissionType === "percentage" 
+      commission = (employee as any).commissionType === "percentage"
         ? totalPrice * ((employee as any).commissionValue ?? employee.commissionRate)
         : (employee as any).commissionType === "fixed"
         ? (employee as any).commissionValue
@@ -136,6 +158,7 @@ export async function POST(request: Request) {
           note: body.note || null,
           shopId: body.shopId ? parseInt(body.shopId) : null,
           createdAt: orderDate,
+          companyId,
           createdById: userId,
           items: {
             create: items.map((item) => {
@@ -167,7 +190,7 @@ export async function POST(request: Request) {
       for (const item of items) {
         const productId = parseInt(item.productId.toString())
         const quantity = parseInt(item.quantity.toString())
-        
+
         await tx.product.update({
           where: { id: productId },
           data: { stock: { decrement: quantity } },
@@ -178,7 +201,13 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(order)
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (error.message === "NO_COMPANY_ACCESS") {
+      return NextResponse.json({ error: "No company access" }, { status: 403 })
+    }
     console.error("Order creation error:", error)
     return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
   }

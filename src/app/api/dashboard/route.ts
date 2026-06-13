@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireCompany } from "@/lib/session"
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
+    const { companyId } = await requireCompany()
     const { searchParams } = new URL(request.url)
     const filterType = searchParams.get("filterType") || "all"
     const filterDate = searchParams.get("filterDate") || new Date().toISOString().split("T")[0]
@@ -43,19 +45,22 @@ export async function GET(request: Request) {
       }
     }
 
+    // companyId อยู่ใน filter หลักทั้งสองตัว — ทุก query/groupBy ที่ spread filter เหล่านี้จะถูก scope ตามบริษัทเสมอ
     const dateFilter = filterType !== "all" ? {
+      companyId,
       createdAt: {
         gte: startDate,
         lte: endDate,
       }
-    } : {}
+    } : { companyId }
 
     const expenseDateFilter = filterType !== "all" ? {
+      companyId,
       date: {
         gte: startDate,
         lte: endDate,
       }
-    } : {}
+    } : { companyId }
 
     // ลด connection usage โดยแบ่ง queries เป็นกลุ่มเล็ก ๆ แทนที่จะทำพร้อมกัน 12 ตัว
     
@@ -74,8 +79,8 @@ export async function GET(request: Request) {
         where: expenseDateFilter,
         include: { platform: true, shop: true },
       }),
-      prisma.product.count(),
-      prisma.employee.count(),
+      prisma.product.count({ where: { companyId } }),
+      prisma.employee.count({ where: { companyId } }),
     ])
 
     // Batch 2: Aggregations (3 queries)
@@ -142,9 +147,9 @@ export async function GET(request: Request) {
     ])
 
     // Get platform, employee, and shop names
-    const platforms = await prisma.platform.findMany()
-    const employees = await prisma.employee.findMany()
-    const shops = await prisma.shop.findMany({ include: { platform: true } })
+    const platforms = await prisma.platform.findMany({ where: { companyId } })
+    const employees = await prisma.employee.findMany({ where: { companyId } })
+    const shops = await prisma.shop.findMany({ where: { companyId }, include: { platform: true } })
 
     const platformMap = Object.fromEntries(platforms.map(p => [p.id, p.name]))
     const employeeMap = Object.fromEntries(employees.map(e => [e.id, e.name]))
@@ -325,7 +330,13 @@ export async function GET(request: Request) {
         endDate: endDate.toISOString(),
       },
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (error.message === "NO_COMPANY_ACCESS") {
+      return NextResponse.json({ error: "No company access" }, { status: 403 })
+    }
     console.error("Dashboard API error:", error)
     return NextResponse.json({ error: "Failed to fetch dashboard data" }, { status: 500 })
   }

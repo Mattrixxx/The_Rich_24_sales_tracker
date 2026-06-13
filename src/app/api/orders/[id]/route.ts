@@ -1,16 +1,30 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireCompany } from "@/lib/session"
 
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { companyId } = await requireCompany()
+    const existing = await prisma.order.findFirst({
+      where: { id: parseInt(params.id), companyId },
+    })
+    if (!existing) {
+      return NextResponse.json({ error: "ไม่พบออเดอร์" }, { status: 404 })
+    }
     await prisma.order.delete({
-      where: { id: parseInt(params.id) },
+      where: { id: existing.id },
     })
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (error.message === "NO_COMPANY_ACCESS") {
+      return NextResponse.json({ error: "No company access" }, { status: 403 })
+    }
     return NextResponse.json({ error: "Failed to delete order" }, { status: 500 })
   }
 }
@@ -25,6 +39,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { companyId } = await requireCompany()
     const body = await request.json()
     const orderId = parseInt(params.id)
 
@@ -34,11 +49,11 @@ export async function PUT(
       return NextResponse.json({ error: "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ" }, { status: 400 })
     }
 
-    const productIds = items.map((item) => parseInt(item.productId.toString()))
+    const newProductIds = items.map((item) => parseInt(item.productId.toString()))
 
-    // Get existing order with items
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
+    // Get existing order with items (must belong to the current company)
+    const existingOrder = await prisma.order.findFirst({
+      where: { id: orderId, companyId },
       include: { items: true },
     })
 
@@ -46,18 +61,38 @@ export async function PUT(
       return NextResponse.json({ error: "ไม่พบออเดอร์" }, { status: 404 })
     }
 
+    // Stock adjustments touch both old and new products
+    const affectedProductIds = Array.from(
+      new Set([...newProductIds, ...existingOrder.items.map((i) => i.productId)])
+    )
+
     // รวม query employee และ products ไว้ด้วยกันเพื่อลดการใช้ connection
-    const [employee, products] = await Promise.all([
-      prisma.employee.findUnique({
-        where: { id: parseInt(body.employeeId) },
+    // ทุกรายการต้องอยู่ในบริษัทปัจจุบันเท่านั้น
+    const [employee, products, platform, shop] = await Promise.all([
+      prisma.employee.findFirst({
+        where: { id: parseInt(body.employeeId), companyId },
       }),
       prisma.product.findMany({
-        where: { id: { in: productIds } },
-      })
+        where: { id: { in: affectedProductIds }, companyId },
+      }),
+      prisma.platform.findFirst({
+        where: { id: parseInt(body.platformId), companyId },
+      }),
+      body.shopId
+        ? prisma.shop.findFirst({
+            where: { id: parseInt(body.shopId), companyId },
+          })
+        : Promise.resolve(null),
     ])
 
     if (!employee) {
       return NextResponse.json({ error: "ไม่พบพนักงาน" }, { status: 400 })
+    }
+    if (!platform) {
+      return NextResponse.json({ error: "ไม่พบแพลตฟอร์ม" }, { status: 400 })
+    }
+    if (body.shopId && !shop) {
+      return NextResponse.json({ error: "ไม่พบร้านค้า" }, { status: 400 })
     }
 
     // Calculate stock changes
@@ -92,7 +127,7 @@ export async function PUT(
 
     const totalPrice = parseFloat(body.totalPrice)
     // Calculate commission based on type (with backward compatibility)
-    const commission = (employee as any).commissionType === "percentage" 
+    const commission = (employee as any).commissionType === "percentage"
       ? totalPrice * ((employee as any).commissionValue ?? employee.commissionRate)
       : (employee as any).commissionType === "fixed"
       ? (employee as any).commissionValue
@@ -159,7 +194,13 @@ export async function PUT(
     })
 
     return NextResponse.json(order)
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (error.message === "NO_COMPANY_ACCESS") {
+      return NextResponse.json({ error: "No company access" }, { status: 403 })
+    }
     console.error("Order update error:", error)
     return NextResponse.json({ error: "Failed to update order" }, { status: 500 })
   }
